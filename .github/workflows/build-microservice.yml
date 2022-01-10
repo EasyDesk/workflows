@@ -1,0 +1,74 @@
+name: Microservice Continuous Integration
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        type: string
+        required: true
+      warnings-as-errors:
+        type: boolean
+        required: false
+        default: false
+      main-project-name:
+        type: string
+        required: true
+      unit-test-project-name:
+        type: string
+        required: true
+      app-publish-dir:
+        type: string
+        required: false
+        default: app
+      sql-script-name:
+        type: string
+        required: false
+        default: update-database.sql
+    outputs:
+      version:
+        value: ${{ jobs.build.outputs.version }}
+      should-release:
+        value: ${{ jobs.build.outputs.should-release }}
+      is-prerelease:
+        value: ${{ jobs.build.outputs.is-prerelease }}
+
+jobs:
+  build:
+    name: Build Microservice
+    runs-on: ubuntu-20.04
+    env:
+      OUTPUT_DIR: out
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      should-release: ${{ steps.semver.outputs.should-release }}
+      is-prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
+    steps:
+      - id: semver
+        name: Checkout
+        uses: EasyDesk/action-semver-checkout@v1
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+      - name: Build
+        uses: EasyDesk/action-dotnet-build@v1
+        with:
+          warnings-as-errors: ${{ inputs.warnings-as-errors }}
+      - name: Run Unit Tests
+        uses: EasyDesk/action-dotnet-test@v1
+        with:
+          path: ${{ inputs.unit-tests-project }}
+      - name: Generate database script
+        uses: EasyDesk/action-generate-migrations-script@v1
+        with:
+          project-dir: ${{ inputs.main-project-name }}
+          output-file: ${{ env.OUTPUT_DIR }}/${{ inputs.sql-script-name }}
+      - name: Publish
+        uses: EasyDesk/action-dotnet-publish@v1
+        with:
+          path: ${{ inputs.main-project-name }}
+          output-dir: ${{ env.OUTPUT_DIR }}/${{ inputs.app-publish-dir }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: ${{ env.OUTPUT_DIR }}

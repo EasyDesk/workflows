@@ -1,0 +1,22 @@
+name: Workflow CI
+
+on:
+  push:
+    tags:
+      - "*"
+
+concurrency: new-tag
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-20.04
+    steps:
+      - id: semver-checkout
+        name: Checkout
+        uses: EasyDesk/action-semver-checkout@v1
+      - name: Release
+        if: ${{ steps.semver-checkout.outputs.should-release == 'true' }}
+        uses: EasyDesk/action-semver-release@v1
+        with:
+          version: ${{ steps.semver-checkout.outputs.version }}
+          prerelease: ${{ steps.semver-checkout.outputs.is-github-prerelease }}
