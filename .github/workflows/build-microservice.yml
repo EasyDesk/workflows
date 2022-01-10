@@ -24,6 +24,10 @@ on:
         type: string
         required: false
         default: update-database.sql
+      artifact-name:
+        type: string
+        required: false
+        default: build-artifacts
     outputs:
       version:
         value: ${{ jobs.build.outputs.version }}
@@ -70,5 +74,5 @@ jobs:
           output-dir: ${{ env.OUTPUT_DIR }}/${{ inputs.app-publish-dir }}
       - uses: actions/upload-artifact@v2
         with:
-          name: build-artifacts
+          name: ${{ inputs.artifact-name }}
           path: ${{ env.OUTPUT_DIR }}
