@@ -28,13 +28,15 @@ on:
         type: string
         required: false
         default: build-artifacts
+      release-prefix:
+        type: string
+        required: false
+        default: ${{ github.repository }}
     outputs:
       version:
         value: ${{ jobs.build.outputs.version }}
-      should-release:
-        value: ${{ jobs.build.outputs.should-release }}
-      is-prerelease:
-        value: ${{ jobs.build.outputs.is-prerelease }}
+      released:
+        value: ${{ jobs.release.outputs.released == 'true' }}
 
 jobs:
   build:
@@ -76,3 +78,32 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ env.OUTPUT_DIR }}
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-20.04
+    needs: [build]
+    if: needs.build.outputs.should-release == 'true'
+    outputs:
+      released: ${{ steps.release-notification.outputs.released }}
+    env:
+      RELEASE_NAME: ${{ inputs.release-prefix }}_${{ steps.semver.outputs.version }}
+    concurrency: release
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: ${{ inputs.artifact-name }}
+      - name: Zip build assets
+        run: zip -r "${RELEASE_NAME//\//_}" '${{ inputs.app-publish-dir }}'/*
+      - name: Release
+        uses: EasyDesk/action-semver-release@v1
+        with:
+          version: ${{ needs.build.outputs.version }}
+          prerelease: ${{ needs.build.outputs.is-prerelease }}
+          prefix: ${{ env.RELEASE_NAME }}
+          files: |
+            ${{ inputs.sql-script-name }}
+            *.zip
+      - name: Notify release
+        id: release-notification
+        run: |
+          echo '::set-output name=released::true'
