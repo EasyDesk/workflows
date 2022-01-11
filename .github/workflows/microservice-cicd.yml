@@ -86,7 +86,7 @@ jobs:
     outputs:
       released: ${{ steps.release-notification.outputs.released }}
     env:
-      RELEASE_NAME: ${{ inputs.release-prefix }}_${{ steps.semver.outputs.version }}
+      RELEASE_NAME: ${{ inputs.release-prefix }}_${{ needs.build.outputs.version }}
     concurrency: release
     steps:
       - uses: actions/download-artifact@v2
