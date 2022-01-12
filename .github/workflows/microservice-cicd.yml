@@ -93,6 +93,7 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
       - name: Zip build assets
+        shell: bash
         run: zip -r "${RELEASE_NAME//\//_}.zip" '${{ inputs.app-publish-dir }}'/*
       - name: Release
         uses: EasyDesk/action-semver-release@v1
@@ -105,5 +106,6 @@ jobs:
             *.zip
       - name: Notify release
         id: release-notification
+        shell: bash
         run: |
           echo '::set-output name=released::true'
