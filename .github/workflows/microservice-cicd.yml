@@ -85,8 +85,6 @@ jobs:
     if: needs.build.outputs.should-release == 'true'
     outputs:
       released: ${{ steps.release-notification.outputs.released }}
-    env:
-      RELEASE_NAME: ${{ inputs.release-prefix }}_${{ needs.build.outputs.version }}
     concurrency: release
     steps:
       - uses: actions/download-artifact@v2
@@ -94,13 +92,15 @@ jobs:
           name: ${{ inputs.artifact-name }}
       - name: Zip build assets
         shell: bash
-        run: zip -r "${RELEASE_NAME//\//_}.zip" '${{ inputs.app-publish-dir }}'/*
+        env:
+          ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ needs.build.outputs.version }}
+        run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" '${{ inputs.app-publish-dir }}'/*
       - name: Release
         uses: EasyDesk/action-semver-release@v1
         with:
           version: ${{ needs.build.outputs.version }}
           prerelease: ${{ needs.build.outputs.is-prerelease }}
-          prefix: ${{ env.RELEASE_NAME }}
+          prefix: ${{ inputs.release-prefix }}
           files: |
             ${{ inputs.sql-script-name }}
             *.zip
