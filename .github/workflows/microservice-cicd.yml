@@ -159,7 +159,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}
       - name: Zip build assets
