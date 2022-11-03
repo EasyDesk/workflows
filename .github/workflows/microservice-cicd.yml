@@ -107,6 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.docker-compose-file != ''
     needs: [build]
+    concurrency: docker-push
     services:
       registry:
         image: registry:2
