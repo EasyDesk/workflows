@@ -91,7 +91,7 @@ jobs:
       - name: Generate database script
         uses: EasyDesk/action-generate-migrations-script@v1
         with:
-          project-dir: ${{ inputs.main-project-versionname }}
+          project-dir: ${{ inputs.main-project }}
           output-file: ${{ env.OUTPUT_DIR }}/${{ inputs.sql-script-name }}
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
