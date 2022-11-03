@@ -10,7 +10,7 @@ on:
         type: boolean
         required: false
         default: false
-      main-project-name:
+      main-project:
         type: string
         required: true
       unit-tests-project:
@@ -96,7 +96,7 @@ jobs:
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
         with:
-          path: ${{ inputs.main-project-name }}
+          path: ${{ inputs.main-project }}
           output-dir: ${{ env.OUTPUT_DIR }}/${{ inputs.publish-dir }}
       - uses: actions/upload-artifact@v3
         with:
@@ -132,7 +132,7 @@ jobs:
             type=raw,value=${{ needs.build.outputs.major }},enable=${{ needs.build.outputs.should-release == 'true' }}
           labels: |
             maintainer=${{ inputs.docker-username }}
-            org.opencontainers.image.title=${{ inputs.main-project-name }}
+            org.opencontainers.image.title=${{ inputs.main-project }}
           flavor: |
             latest=${{ needs.build.outputs.should-release == 'true' }}
       - name: Build and push Docker image
