@@ -13,10 +13,14 @@ on:
       main-project-name:
         type: string
         required: true
-      unit-test-project-name:
+      unit-tests-project:
         type: string
         required: true
-      app-publish-dir:
+      integration-tests-project:
+        type: string
+        required: false
+        default: ''
+      publish-dir:
         type: string
         required: false
         default: app
@@ -32,6 +36,18 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
+      dockerfile:
+        type: string
+        required: false
+        default: ''
+      image-name:
+        type: string
+        required: false
+        default: ${{ github.repository }}
+      docker-username:
+        type: string
+        required: false
+        default: ${{ github.repository_owner }}
     outputs:
       version:
         value: ${{ jobs.build.outputs.version }}
@@ -41,13 +57,16 @@ on:
 jobs:
   build:
     name: Build Microservice
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       OUTPUT_DIR: out
     outputs:
       version: ${{ steps.semver.outputs.version }}
       should-release: ${{ steps.semver.outputs.should-release }}
       is-prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
+      major: ${{ steps.semver.outputs.major }}
+      minor: ${{ steps.semver.outputs.minor }}
+      patch: ${{ steps.semver.outputs.patch }}
     steps:
       - id: semver
         name: Checkout
@@ -64,37 +83,88 @@ jobs:
         uses: EasyDesk/action-dotnet-test@v1
         with:
           path: ${{ inputs.unit-tests-project }}
+      - name: Run Integration Tests
+        uses: EasyDesk/action-dotnet-test@v1
+        if: inputs.integration-test-project != ''
+        with:
+          path: ${{ inputs.integration-tests-project }}
       - name: Generate database script
         uses: EasyDesk/action-generate-migrations-script@v1
         with:
-          project-dir: ${{ inputs.main-project-name }}
+          project-dir: ${{ inputs.main-project-versionname }}
           output-file: ${{ env.OUTPUT_DIR }}/${{ inputs.sql-script-name }}
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
         with:
           path: ${{ inputs.main-project-name }}
-          output-dir: ${{ env.OUTPUT_DIR }}/${{ inputs.app-publish-dir }}
+          output-dir: ${{ env.OUTPUT_DIR }}/${{ inputs.publish-dir }}
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ inputs.artifact-name }}
           path: ${{ env.OUTPUT_DIR }}
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    if: inputs.docker-compose-file != ''
+    needs: [build]
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            localhost:5000/${{ inputs.docker-username }}/${{ inputs.image-name }}
+          tags: |
+            type=edge
+            type=raw,value=${{ needs.build.outputs.version }},enable=${{ needs.build.outputs.should-release == 'true' }}
+            type=raw,value=${{ needs.build.outputs.major }}.${{ needs.build.outputs.minor }},enable=${{ needs.build.outputs.should-release == 'true' }}
+            type=raw,value=${{ needs.build.outputs.major }},enable=${{ needs.build.outputs.should-release == 'true' }}
+          labels: |
+            maintainer=${{ inputs.docker-username }}
+            org.opencontainers.image.title=${{ inputs.main-project-name }}
+          flavor: |
+            latest=${{ needs.build.outputs.should-release == 'true' }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ${{ inputs.dockerfile }}
+          no-cache: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Inspect
+        run: |
+          curl -X GET https://localhost:5000/v2/_catalog
   release:
     name: GitHub Release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [build]
     if: needs.build.outputs.should-release == 'true'
     outputs:
       released: ${{ steps.release-notification.outputs.released }}
     concurrency: release
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/download-artifact@v2
         with:
           name: ${{ inputs.artifact-name }}
       - name: Zip build assets
-        shell: bash
         env:
           ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ needs.build.outputs.version }}
-        run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" '${{ inputs.app-publish-dir }}'/*
+        run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" '${{ inputs.publish-dir }}'/*
       - name: Release
         uses: EasyDesk/action-semver-release@v1
         with:
@@ -106,6 +176,5 @@ jobs:
             *.zip
       - name: Notify release
         id: release-notification
-        shell: bash
         run: |
-          echo '::set-output name=released::true'
+          echo '{released}={true}' >> $GITHUB_OUTPUT
