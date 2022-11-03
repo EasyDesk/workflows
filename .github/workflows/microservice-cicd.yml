@@ -85,7 +85,7 @@ jobs:
           path: ${{ inputs.unit-tests-project }}
       - name: Run Integration Tests
         uses: EasyDesk/action-dotnet-test@v1
-        if: inputs.integration-test-project != ''
+        if: inputs.integration-tests-project != ''
         with:
           path: ${{ inputs.integration-tests-project }}
       - name: Generate database script
