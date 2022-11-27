@@ -15,7 +15,8 @@ on:
         required: true
       unit-tests-project:
         type: string
-        required: true
+        required: false
+        default: ''
       integration-tests-project:
         type: string
         required: false
@@ -81,6 +82,7 @@ jobs:
           warnings-as-errors: ${{ inputs.warnings-as-errors }}
       - name: Run Unit Tests
         uses: EasyDesk/action-dotnet-test@v1
+        if: inputs.unit-tests-project != ''
         with:
           path: ${{ inputs.unit-tests-project }}
       - name: Run Integration Tests
