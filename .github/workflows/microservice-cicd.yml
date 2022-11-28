@@ -133,7 +133,7 @@ jobs:
         name: Compute artifact name
         run: |
           ARTIFACT_NAME="${{ inputs.artifact-name }}_${{ matrix.project-name }}_${{ needs.build.outputs.version }}"
-          echo "{name}={${ARTIFACT_NAME//\//_}}" | tee $GITHUB_OUTPUT
+          echo "name=${ARTIFACT_NAME//\//_}" | tee $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.artifact.outputs.name }}
