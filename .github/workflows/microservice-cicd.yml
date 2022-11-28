@@ -64,6 +64,8 @@ jobs:
       major: ${{ steps.semver.outputs.major }}
       minor: ${{ steps.semver.outputs.minor }}
       patch: ${{ steps.semver.outputs.patch }}
+    env:
+      OUTPUT_DIR: out
     steps:
       - id: semver
         name: Checkout
@@ -92,14 +94,9 @@ jobs:
           path: |
             ${{ inputs.main-project }}
           output-dir: ${{ env.OUTPUT_DIR }}
-      - id: artifact
-        name: Compute artifact name
-        run: |
-          ARTIFACT_NAME="${{ inputs.artifact-name }}_${{ matrix.project-name }}_${{ needs.build.outputs.version }}"
-          echo "name=${ARTIFACT_NAME//\//_}" | tee $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.artifact.outputs.name }}
+          name: ${{ inputs.artifact-name }}_${{ needs.build.outputs.version }}
           path: ${{ env.OUTPUT_DIR }}
 
   docker-build:
