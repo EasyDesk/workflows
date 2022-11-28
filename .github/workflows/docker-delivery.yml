@@ -1,0 +1,79 @@
+name: Docker Image Continuous Delivery
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        required: false
+        default: ${{ github.repository }}
+      docker-username:
+        type: string
+        required: false
+        default: ${{ github.repository_owner }}
+      registry-url:
+        type: string
+        required: false
+        default: ghcr.io
+      dockerfile:
+        type: string
+        required: false
+        default: Dockerfile
+    secrets:
+      docker-password:
+        required: true
+
+jobs:
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    concurrency: docker-push
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    defaults:
+      run:
+        shell: bash
+    permissions:
+      packages: write
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Login to Docker Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ inputs.registry-url }}
+          username: ${{ inputs.docker-username }}
+          password: ${{ secrets.docker-password }}
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            localhost:5000/${{ inputs.docker-username }}/${{ inputs.image-name }}
+            ${{ inputs.registry-url }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
+          tags: |
+            type=edge
+            type=raw,value=${{ needs.build.outputs.version }},enable=${{ needs.build.outputs.should-release == 'true' }}
+            type=raw,value=${{ needs.build.outputs.major }}.${{ needs.build.outputs.minor }},enable=${{ needs.build.outputs.should-release == 'true' }}
+            type=raw,value=${{ needs.build.outputs.major }},enable=${{ needs.build.outputs.should-release == 'true' }}
+          labels: |
+            maintainer=${{ inputs.docker-username }}
+            org.opencontainers.image.title=${{ inputs.image-name }}
+          flavor: |
+            latest=${{ needs.build.outputs.should-release == 'true' }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ${{ inputs.dockerfile }}
+          no-cache: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Inspect
+        run: |
+          curl -X GET https://localhost:5000/v2/_catalog
