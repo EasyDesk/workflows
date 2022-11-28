@@ -1,0 +1,59 @@
+name: GitHub Continuous Delivery
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      is-prerelease:
+        type: boolean
+        required: false
+        default: false
+      artifact-name:
+        type: string
+        required: false
+        default: build-artifacts
+      release-prefix:
+        type: string
+        required: false
+        default: ${{ github.repository }}
+    outputs:
+      released:
+        value: ${{ jobs.release.outputs.released == 'true' }}
+
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release-notification.outputs.released }}
+    concurrency: release
+    defaults:
+      run:
+        shell: bash
+    env:
+      PATH_TO_ARTIFACTS: publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          path: ${{ env.PATH_TO_ARTIFACTS }}
+      - name: Zip build assets
+        env:
+          ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ inputs.version }}
+        run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" "${PATH_TO_ARTIFACTS}"/*
+      - name: Release
+        uses: EasyDesk/action-semver-release@v1
+        with:
+          version: ${{ inputs.version }}
+          prerelease: ${{ inputs.is-prerelease }}
+          prefix: ${{ inputs.release-prefix }}
+          files: |
+            *.zip
+            LICENSE*
+      - name: Notify release
+        id: release-notification
+        run: |
+          echo '{released}={true}' >> $GITHUB_OUTPUT

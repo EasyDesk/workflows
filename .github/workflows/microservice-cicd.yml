@@ -56,48 +56,14 @@ on:
 jobs:
   build:
     name: Build Microservice
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.semver.outputs.version }}
-      should-release: ${{ steps.semver.outputs.should-release }}
-      is-prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
-      major: ${{ steps.semver.outputs.major }}
-      minor: ${{ steps.semver.outputs.minor }}
-      patch: ${{ steps.semver.outputs.patch }}
-    env:
-      OUTPUT_DIR: out
-    steps:
-      - id: semver
-        name: Checkout
-        uses: EasyDesk/action-semver-checkout@v1
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ inputs.dotnet-version }}
-      - name: Build
-        uses: EasyDesk/action-dotnet-build@v1
-        with:
-          warnings-as-errors: ${{ inputs.warnings-as-errors }}
-      - name: Run Unit Tests
-        uses: EasyDesk/action-dotnet-test@v1
-        if: inputs.unit-tests-project != ''
-        with:
-          path: ${{ inputs.unit-tests-project }}
-      - name: Run Integration Tests
-        uses: EasyDesk/action-dotnet-test@v1
-        if: inputs.integration-tests-project != ''
-        with:
-          path: ${{ inputs.integration-tests-project }}
-      - name: Publish
-        uses: EasyDesk/action-dotnet-publish@v1
-        with:
-          path: |
-            ${{ inputs.main-project }}
-          output-dir: ${{ env.OUTPUT_DIR }}
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}_${{ needs.build.outputs.version }}
-          path: ${{ env.OUTPUT_DIR }}
+    uses: ./.github/workflows/build.yml
+    with:
+      dotnet-version: ${{ inputs.dotnet-version }}
+      warnings-as-errors: ${{ inputs.warnings-as-errors }}
+      unit-tests-project: ${{ inputs.unit-tests-project }}
+      integration-tests-project: ${{ inputs.integration-tests-project }}
+      artifact-name: ${{ inputs.artifact-name }}
+      projects: ${{ inputs.main-project }}
 
   docker-build:
     name: Build Docker Images
@@ -119,35 +85,11 @@ jobs:
 
   release:
     name: GitHub Release
-    runs-on: ubuntu-latest
     needs: [build]
     if: needs.build.outputs.should-release == 'true'
-    outputs:
-      released: ${{ steps.release-notification.outputs.released }}
-    concurrency: release
-    defaults:
-      run:
-        shell: bash
-    env:
-      PATH_TO_ARTIFACTS: publish
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          path: ${{ env.PATH_TO_ARTIFACTS }}
-      - name: Zip build assets
-        env:
-          ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ needs.build.outputs.version }}
-        run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" "${PATH_TO_ARTIFACTS}"/*
-      - name: Release
-        uses: EasyDesk/action-semver-release@v1
-        with:
-          version: ${{ needs.build.outputs.version }}
-          prerelease: ${{ needs.build.outputs.is-prerelease }}
-          prefix: ${{ inputs.release-prefix }}
-          files: |
-            ${{ inputs.sql-script-name }}
-            *.zip
-      - name: Notify release
-        id: release-notification
-        run: |
-          echo '{released}={true}' >> $GITHUB_OUTPUT
+    uses: ./.github/workflows/github-delivery.yml
+    with:
+      version: ${{ needs.build.outputs.version }}
+      is-prerelease: ${{ needs.build.outputs.is-prerelease }}
+      artifact-name: ${{ inputs.artifact-name }}
+      release-prefix: ${{ inputs.release-prefix }}

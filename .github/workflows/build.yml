@@ -1,0 +1,90 @@
+name: Continuous Integration
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        type: string
+        required: true
+      warnings-as-errors:
+        type: boolean
+        required: false
+        default: false
+      unit-tests-project:
+        type: string
+        required: false
+        default: ''
+      integration-tests-project:
+        type: string
+        required: false
+        default: ''
+      artifact-name:
+        type: string
+        required: false
+        default: build-artifacts
+      projects:
+        type: string
+        required: true
+    outputs:
+      version:
+        value: ${{ jobs.build.outputs.version }}
+      should-release:
+        value: ${{ jobs.build.outputs.should-release }}
+      is-prerelease:
+        value: ${{ jobs.build.outputs.is-prerelease }}
+      major:
+        value: ${{ jobs.build.outputs.major }}
+      minor:
+        value: ${{ jobs.build.outputs.minor }}
+      patch:
+        value: ${{ jobs.build.outputs.patch }}
+      
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      should-release: ${{ steps.semver.outputs.should-release }}
+      is-prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
+      major: ${{ steps.semver.outputs.major }}
+      minor: ${{ steps.semver.outputs.minor }}
+      patch: ${{ steps.semver.outputs.patch }}
+    steps:
+      - id: semver
+        name: Checkout
+        uses: EasyDesk/action-semver-checkout@v1
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+      - name: Build
+        uses: EasyDesk/action-dotnet-build@v1
+        with:
+          warnings-as-errors: ${{ inputs.warnings-as-errors }}
+      - name: Run Unit Tests
+        uses: EasyDesk/action-dotnet-test@v1
+        if: inputs.unit-tests-project != ''
+        with:
+          path: ${{ inputs.unit-tests-project }}
+      - name: Run Integration Tests
+        uses: EasyDesk/action-dotnet-test@v1
+        if: inputs.integration-tests-project != ''
+        with:
+          path: ${{ inputs.integration-tests-project }}
+      - name: Create temporary directory
+        id: tempdir
+        run: |
+          TD=$(mktemp -d)
+          mkdir "$TD"
+          echo "tempdir=$TD" >> $GITHUB_OUTPUT
+      - name: Publish
+        uses: EasyDesk/action-dotnet-publish@v1
+        with:
+          path: ${{ inputs.projects }}
+          output-dir: ${{ steps.tempdir.outputs.tempdir }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.artifact-name }}_${{ needs.build.outputs.version }}
+          path: ${{ steps.tempdir.outputs.tempdir }}
