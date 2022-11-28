@@ -69,15 +69,10 @@ jobs:
     name: Build Docker Images
     needs: [build]
     if: ${{ inputs.dockerfile != '' }}
-    strategy:
-      matrix:
-        include:
-          - dockerfile: ${{ inputs.dockerfile }}
-            image-name: ${{ inputs.image-name }}
     uses: ./.github/workflows/docker-delivery.yml
     with:
-      dockerfile: ${{ matrix.dockerfile }}
-      image-name: ${{ matrix.image-name }}
+      dockerfile: ${{ inputs.dockerfile }}
+      image-name: ${{ inputs.image-name }}
       docker-username: ${{ inputs.docker-username }}
       registry-url: ${{ inputs.registry-url }}
     secrets:
