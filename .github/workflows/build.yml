@@ -76,9 +76,7 @@ jobs:
       - name: Create temporary directory
         id: tempdir
         run: |
-          TD=$(mktemp -d)
-          mkdir "$TD"
-          echo "tempdir=$TD" >> $GITHUB_OUTPUT
+          echo "tempdir=$(mktemp -d)" >> $GITHUB_OUTPUT
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
         with:
