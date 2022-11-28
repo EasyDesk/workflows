@@ -114,6 +114,16 @@ jobs:
         project-name:
           - ${{ inputs.main-project }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+      - name: Build
+        uses: EasyDesk/action-dotnet-build@v1
+        with:
+          warnings-as-errors: ${{ inputs.warnings-as-errors }}
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
         with:
