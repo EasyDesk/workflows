@@ -10,10 +10,6 @@ on:
         type: boolean
         required: false
         default: false
-      artifact-name:
-        type: string
-        required: false
-        default: build-artifacts
       release-prefix:
         type: string
         required: false
