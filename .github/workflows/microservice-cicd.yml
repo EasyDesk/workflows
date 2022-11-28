@@ -86,6 +86,21 @@ jobs:
         if: inputs.integration-tests-project != ''
         with:
           path: ${{ inputs.integration-tests-project }}
+      - name: Publish
+        uses: EasyDesk/action-dotnet-publish@v1
+        with:
+          path: |
+            ${{ inputs.main-project }}
+          output-dir: ${{ env.OUTPUT_DIR }}
+      - id: artifact
+        name: Compute artifact name
+        run: |
+          ARTIFACT_NAME="${{ inputs.artifact-name }}_${{ matrix.project-name }}_${{ needs.build.outputs.version }}"
+          echo "name=${ARTIFACT_NAME//\//_}" | tee $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ env.OUTPUT_DIR }}
   docker-build:
     name: Build Docker Images
     needs: [build]
@@ -103,41 +118,6 @@ jobs:
       registry-url: ${{ inputs.registry-url }}
     secrets:
       docker-password: ${{ secrets.docker-password }}
-  publish:
-    name: Publish Artifacts
-    runs-on: ubuntu-latest
-    env:
-      OUTPUT_DIR: out
-    needs: [build]
-    strategy:
-      matrix:
-        project-name:
-          - ${{ inputs.main-project }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ inputs.dotnet-version }}
-      - name: Build
-        uses: EasyDesk/action-dotnet-build@v1
-        with:
-          warnings-as-errors: ${{ inputs.warnings-as-errors }}
-      - name: Publish
-        uses: EasyDesk/action-dotnet-publish@v1
-        with:
-          path: ${{ matrix.project-name }}
-          output-dir: ${{ env.OUTPUT_DIR }}
-      - id: artifact
-        name: Compute artifact name
-        run: |
-          ARTIFACT_NAME="${{ inputs.artifact-name }}_${{ matrix.project-name }}_${{ needs.build.outputs.version }}"
-          echo "name=${ARTIFACT_NAME//\//_}" | tee $GITHUB_OUTPUT
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.artifact.outputs.name }}
-          path: ${{ env.OUTPUT_DIR }}
   release:
     name: GitHub Release
     runs-on: ubuntu-latest
