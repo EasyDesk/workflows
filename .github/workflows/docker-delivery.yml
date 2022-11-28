@@ -76,4 +76,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
       - name: Inspect
         run: |
-          curl -X GET https://localhost:5000/v2/_catalog
+          curl -X GET http://localhost:5000/v2/_catalog
