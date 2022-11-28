@@ -89,7 +89,7 @@ jobs:
   docker-build:
     name: Build Docker Images
     needs: [build]
-    if: ${{ inputs.dockerfile != '' && secrets.docker-password != '' }}
+    if: ${{ inputs.dockerfile != '' }}
     strategy:
       matrix:
         include:
