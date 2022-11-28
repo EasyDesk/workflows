@@ -129,9 +129,14 @@ jobs:
         with:
           path: ${{ matrix.project-name }}
           output-dir: ${{ env.OUTPUT_DIR }}
+      - id: artifact
+        name: Compute artifact name
+        run: |
+          ARTIFACT_NAME="${{ inputs.artifact-name }}_${{ matrix.project-name }}_${{ needs.build.outputs.version }}"
+          echo "{name}=${ARTIFACT_NAME//\//_}" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}_${{ matrix.project-name }}_${{ needs.build.outputs.version }}
+          name: ${{ steps.artifact.outputs.name }}
           path: ${{ env.OUTPUT_DIR }}
   release:
     name: GitHub Release
