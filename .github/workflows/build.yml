@@ -84,5 +84,5 @@ jobs:
           output-dir: ${{ steps.tempdir.outputs.tempdir }}
       - uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.artifact-name }}_${{ needs.build.outputs.version }}
+          name: ${{ inputs.artifact-name }}_${{ steps.semver.outputs.version }}
           path: ${{ steps.tempdir.outputs.tempdir }}

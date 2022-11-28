@@ -86,5 +86,4 @@ jobs:
     with:
       version: ${{ needs.build.outputs.version }}
       is-prerelease: ${{ needs.build.outputs.is-prerelease }}
-      artifact-name: ${{ inputs.artifact-name }}
       release-prefix: ${{ inputs.release-prefix }}
