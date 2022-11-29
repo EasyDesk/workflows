@@ -38,7 +38,7 @@ jobs:
         uses: EasyDesk/action-semver-release@v1
         with:
           version: ${{ steps.semver.outputs.version }}
-          prerelease: ${{ steps.semver.outputs.prerelease }}
+          prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
           prefix: ${{ inputs.release-prefix }}
           files: |
             *.zip
