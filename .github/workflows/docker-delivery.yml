@@ -58,7 +58,7 @@ jobs:
             ${{ inputs.registry-url }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
           tags: |
             type=edge
-            type=raw,value=${{ steps.semver.outputs.version }},enable=${{ steps.semver.outputs.should-release }}
+            type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }},enable=${{ steps.semver.outputs.should-release }}
           labels: |
