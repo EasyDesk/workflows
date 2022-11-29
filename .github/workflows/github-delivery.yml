@@ -46,4 +46,4 @@ jobs:
       - name: Notify release
         id: release-notification
         run: |
-          echo '{released}={true}' >> $GITHUB_OUTPUT
+          echo 'released=true' >> $GITHUB_OUTPUT
