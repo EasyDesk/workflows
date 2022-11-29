@@ -3,13 +3,6 @@ name: GitHub Continuous Delivery
 on:
   workflow_call:
     inputs:
-      version:
-        type: string
-        required: true
-      is-prerelease:
-        type: boolean
-        required: false
-        default: false
       release-prefix:
         type: string
         required: false
@@ -32,19 +25,20 @@ jobs:
       PATH_TO_ARTIFACTS: publish
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        id: semver
+        uses: EasyDesk/action-semver-checkout@v1
       - uses: actions/download-artifact@v3
         with:
           path: ${{ env.PATH_TO_ARTIFACTS }}
       - name: Zip build assets
         env:
-          ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ inputs.version }}
+          ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ steps.semver.outputs.version }}
         run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" "${PATH_TO_ARTIFACTS}"/*
       - name: Release
         uses: EasyDesk/action-semver-release@v1
         with:
-          version: ${{ inputs.version }}
-          prerelease: ${{ inputs.is-prerelease }}
+          version: ${{ steps.semver.outputs.version }}
+          prerelease: ${{ steps.semver.outputs.prerelease }}
           prefix: ${{ inputs.release-prefix }}
           files: |
             *.zip
