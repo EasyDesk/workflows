@@ -18,6 +18,10 @@ on:
         type: string
         required: false
         default: ''
+      additional-test-arguments:
+        type: string
+        required: false
+        default: ''
       artifact-name:
         type: string
         required: false
@@ -64,6 +68,7 @@ jobs:
       integration-tests-project: ${{ inputs.integration-tests-project }}
       artifact-name: ${{ inputs.artifact-name }}
       projects: ${{ inputs.main-project }}
+      additional-test-arguments: ${{ inputs.additional-test-arguments }}
 
   docker-build:
     name: Build Docker Images
