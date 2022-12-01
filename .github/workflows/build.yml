@@ -38,7 +38,12 @@ on:
         value: ${{ jobs.build.outputs.minor }}
       patch:
         value: ${{ jobs.build.outputs.patch }}
-      
+
+
+defaults:
+  run:
+    shell: bash
+
 
 jobs:
   build:
@@ -59,6 +64,12 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
+      - name: Install test helpers for unit tests
+        if: ${{ inputs.unit-tests-project != '' }}
+        run: dotnet add ${{ inputs.unit-tests-project }} package GitHubActionsTestLogger
+      - name: Install test helpers for integration tests
+        if: ${{ inputs.integration-tests-project != '' }}
+        run: dotnet add ${{ inputs.integration-tests-project }} package GitHubActionsTestLogger
       - name: Build
         uses: EasyDesk/action-dotnet-build@v1
         with:
@@ -68,11 +79,13 @@ jobs:
         if: inputs.unit-tests-project != ''
         with:
           path: ${{ inputs.unit-tests-project }}
+          test-args: --logger 'GitHubActions'
       - name: Run Integration Tests
         uses: EasyDesk/action-dotnet-test@v1
         if: inputs.integration-tests-project != ''
         with:
           path: ${{ inputs.integration-tests-project }}
+          test-args: --logger 'GitHubActions'
       - name: Create temporary directory
         id: tempdir
         run: |
