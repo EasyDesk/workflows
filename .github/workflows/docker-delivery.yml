@@ -39,6 +39,8 @@ jobs:
     permissions:
       packages: write
       contents: write
+    env:
+      DEFAULT_REGISTRY: localhost:5000
     steps:
       - name: Checkout
         id: semver
@@ -46,7 +48,7 @@ jobs:
       - name: Login to Docker Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ inputs.registry-url }}
+          registry: ${{ inputs.registry-url || env.DEFAULT_REGISTRY }}
           username: ${{ inputs.docker-username }}
           password: ${{ secrets.docker-password }}
       - name: Docker metadata
@@ -54,8 +56,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            localhost:5000/${{ inputs.docker-username }}/${{ inputs.image-name }}
-            ${{ inputs.registry-url }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
+            ${{ env.DEFAULT_REGISTRY }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
+            ${{ inputs.registry-url || env.DEFAULT_REGISTRY }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
           tags: |
             type=edge
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }},enable=${{ steps.semver.outputs.should-release }}
