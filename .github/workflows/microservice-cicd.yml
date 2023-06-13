@@ -75,7 +75,7 @@ jobs:
       dockerfile: ${{ inputs.dockerfile }}
       image-name: ${{ inputs.image-name }}
     secrets:
-      registry-url: ${{ secrets.registry-url || 'ghcr.io' }}
+      registry-url: ${{ secrets.registry-url }}
       docker-username: ${{ secrets.docker-username || github.repository_owner }}
       docker-password: ${{ secrets.docker-password }}
 
