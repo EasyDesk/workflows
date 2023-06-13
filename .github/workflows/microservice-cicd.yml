@@ -40,16 +40,12 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
-      docker-username:
-        type: string
-        required: false
-        default: ${{ github.repository_owner }}
-      registry-url:
-        type: string
-        required: false
-        default: ghcr.io
     secrets:
+      registry-url:
+        required: false
       docker-password:
+        required: false
+      docker-username:
         required: false
     outputs:
       version:
@@ -78,9 +74,9 @@ jobs:
     with:
       dockerfile: ${{ inputs.dockerfile }}
       image-name: ${{ inputs.image-name }}
-      docker-username: ${{ inputs.docker-username }}
-      registry-url: ${{ inputs.registry-url }}
     secrets:
+      registry-url: ${{ secrets.registry-url || 'ghcr.io' }}
+      docker-username: ${{ secrets.docker-username || github.repository_owner }}
       docker-password: ${{ secrets.docker-password }}
 
   release:

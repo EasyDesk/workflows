@@ -7,21 +7,17 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
-      docker-username:
-        type: string
-        required: false
-        default: ${{ github.repository_owner }}
-      registry-url:
-        type: string
-        required: false
-        default: ghcr.io
       dockerfile:
         type: string
         required: false
         default: Dockerfile
     secrets:
+      docker-username:
+        required: false
       docker-password:
         required: true
+      registry-url:
+        required: false
 
 jobs:
   docker-build:
@@ -43,6 +39,7 @@ jobs:
       contents: write
     env:
       DEFAULT_REGISTRY: localhost:5000
+      DEFAULT_DOCKER_USERNAME: ${{ github.repository_owner }}
     steps:
       - name: Checkout
         id: semver
@@ -50,23 +47,23 @@ jobs:
       - name: Login to Docker Container Registry
         uses: docker/login-action@v2
         with:
-          registry: ${{ inputs.registry-url || env.DEFAULT_REGISTRY }}
-          username: ${{ inputs.docker-username }}
+          registry: ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}
+          username: ${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
           password: ${{ secrets.docker-password }}
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: |
-            ${{ env.DEFAULT_REGISTRY }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
-            ${{ inputs.registry-url || env.DEFAULT_REGISTRY }}/${{ inputs.docker-username }}/${{ inputs.image-name }}
+            ${{ env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
+            ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
           tags: |
             type=edge
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }},enable=${{ steps.semver.outputs.should-release }}
           labels: |
-            maintainer=${{ inputs.docker-username }}
+            maintainer=${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
             org.opencontainers.image.title=${{ inputs.image-name }}
           flavor: |
             latest=${{ steps.semver.outputs.should-release }}
