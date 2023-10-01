@@ -45,7 +45,7 @@ jobs:
         id: semver
         uses: EasyDesk/action-semver-checkout@v1
       - name: Login to Docker Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}
           username: ${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
