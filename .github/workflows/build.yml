@@ -65,7 +65,7 @@ jobs:
         name: Checkout
         uses: EasyDesk/action-semver-checkout@v1
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
       - name: Build
