@@ -93,7 +93,7 @@ jobs:
         with:
           path: ${{ inputs.projects }}
           output-dir: ${{ steps.tempdir.outputs.tempdir }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}_${{ steps.semver.outputs.version }}
           path: ${{ steps.tempdir.outputs.tempdir }}
