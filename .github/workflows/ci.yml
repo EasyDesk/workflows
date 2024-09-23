@@ -9,7 +9,7 @@ concurrency: new-tag
 jobs:
   release:
     name: GitHub Release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - id: semver-checkout
         name: Checkout
