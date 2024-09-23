@@ -14,7 +14,7 @@ on:
 jobs:
   release:
     name: GitHub Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       released: ${{ steps.release-notification.outputs.released }}
     concurrency: release
