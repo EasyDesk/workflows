@@ -1,0 +1,47 @@
+name: Generate OpenAPI Document
+
+on:
+  workflow_call:
+    inputs:
+      openapi-command:
+        type: string
+        required: true
+      project:
+        type: string
+        required: true
+      dotnet-version:
+        type: string
+        required: true
+      output-file:
+        type: string
+        required: false
+        default: 'openapi.json'
+      artifact-name:
+        type: string
+        required: false
+        default: 'openapi'
+
+jobs:
+  generate:
+    name: Generate OpenAPI Document
+    runs-on: ubuntu-20.04
+    steps:
+      - id: semver
+        name: Checkout
+        uses: EasyDesk/action-semver-checkout@v1
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+      - id: generate
+        name: Generate OpenAPI Document
+        uses: EasyDesk/action-dotnet@v1
+        with:
+          script: |
+            dotnet run --project ${{ inputs.project }} -- ${{ inputs.openapi-command }} > ${{ inputs.output-file }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.output-file }}
+

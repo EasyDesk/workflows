@@ -40,6 +40,18 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
+      openapi-command:
+        type: string
+        required: false
+        default: ''
+      openapi-file:
+        type: string
+        required: false
+        default: 'openapi.json'
+      openapi-artifact-name:
+        type: string
+        required: false
+        default: 'openapi'
     secrets:
       registry-url:
         required: false
@@ -78,6 +90,18 @@ jobs:
       registry-url: ${{ secrets.registry-url }}
       docker-username: ${{ secrets.docker-username || github.repository_owner }}
       docker-password: ${{ secrets.docker-password }}
+
+  openapi:
+    name: Generate OpenAPI Document
+    needs: [build]
+    if: ${{ inputs.openapi-command != '' }}
+    uses: ./.github/workflows/openapi.yml
+    with:
+      openapi-command: ${{ inputs.openapi-command }}
+      project: ${{ inputs.main-project }}
+      dotnet-version: ${{ inputs.dotnet-version }}
+      output-file: ${{ inputs.openapi-file }}
+      artifact-name: ${{ inputs.openapi-artifact-name }}
 
   release:
     name: GitHub Release
