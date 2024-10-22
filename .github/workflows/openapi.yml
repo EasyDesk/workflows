@@ -41,7 +41,7 @@ jobs:
         uses: EasyDesk/action-dotnet@v1
         with:
           script: |
-            dotnet '${{ inputs.project }}.dll' ${{ inputs.openapi-command }} > ${{ inputs.output-file }}
+            ${{ inputs.openapi-command }} > ${{ inputs.output-file }}
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
