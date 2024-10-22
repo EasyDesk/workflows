@@ -74,7 +74,7 @@ jobs:
       warnings-as-errors: ${{ inputs.warnings-as-errors }}
       unit-tests-project: ${{ inputs.unit-tests-project }}
       integration-tests-project: ${{ inputs.integration-tests-project }}
-      artifact-name: ${{ inputs.artifact-name }}
+      build-artifact-name: ${{ inputs.artifact-name }}
       projects: ${{ inputs.main-project }}
       additional-test-arguments: ${{ inputs.additional-test-arguments }}
 
@@ -101,7 +101,8 @@ jobs:
       project: ${{ inputs.main-project }}
       dotnet-version: ${{ inputs.dotnet-version }}
       output-file: ${{ inputs.openapi-file }}
-      artifact-name: ${{ inputs.openapi-artifact-name }}
+      build-artifact-name: ${{ inputs.artifact-name }}
+      openapi-artifact-name: ${{ inputs.openapi-artifact-name }}
 
   release:
     name: GitHub Release

@@ -18,10 +18,9 @@ on:
         type: string
         required: false
         default: ''
-      artifact-name:
+      build-artifact-name:
         type: string
-        required: false
-        default: build-artifacts
+        required: true
       projects:
         type: string
         required: true
@@ -95,5 +94,5 @@ jobs:
           output-dir: ${{ steps.tempdir.outputs.tempdir }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact-name }}_${{ steps.semver.outputs.version }}
+          name: ${{ inputs.build-artifact-name }}
           path: ${{ steps.tempdir.outputs.tempdir }}

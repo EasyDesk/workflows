@@ -16,32 +16,35 @@ on:
         type: string
         required: false
         default: 'openapi.json'
-      artifact-name:
+      build-artifact-name:
         type: string
-        required: false
-        default: 'openapi'
+        required: true
+      openapi-artifact-name:
+        type: string
+        required: true
 
 jobs:
   generate:
     name: Generate OpenAPI Document
     runs-on: ubuntu-20.04
     steps:
-      - id: semver
-        name: Checkout
-        uses: EasyDesk/action-semver-checkout@v1
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
+      - name: Download Build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.build-artifact-name }}
       - id: generate
         name: Generate OpenAPI Document
         uses: EasyDesk/action-dotnet@v1
         with:
           script: |
-            dotnet run --project ${{ inputs.project }} -- ${{ inputs.openapi-command }} > ${{ inputs.output-file }}
+            dotnet '${{ inputs.project }}.dll' ${{ inputs.openapi-command }} > ${{ inputs.output-file }}
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact-name }}
+          name: ${{ inputs.openapi-artifact-name }}
           path: ${{ inputs.output-file }}
 
