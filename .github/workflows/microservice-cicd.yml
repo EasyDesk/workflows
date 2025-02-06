@@ -106,7 +106,7 @@ jobs:
 
   release:
     name: GitHub Release
-    needs: [build]
+    needs: [build, docker-build, openapi]
     if: needs.build.outputs.should-release == 'true'
     uses: ./.github/workflows/github-delivery.yml
     with:
