@@ -47,15 +47,11 @@ jobs:
         with:
           name: ${{ inputs.openapi-artifact-name }}
           path: ${{ inputs.output-file }}
-      - run: ls -alhR
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.openapi-artifact-name }}
-      - run: ls -alhR
-      - run: rm "${{ inputs.output-file }}"
+          path: asd
       - name: Download artifact
         uses: actions/download-artifact@v4
-      - run: ls -alhR
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+        with:
+          path: publish
