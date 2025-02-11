@@ -21,19 +21,21 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      PATH_TO_ARTIFACTS: publish
     steps:
       - name: Checkout
         id: semver
         uses: EasyDesk/action-semver-checkout@v1
       - uses: actions/download-artifact@v4
         with:
-          path: ${{ env.PATH_TO_ARTIFACTS }}
-      - name: Zip build assets
+          path: ${{ runner.temp }}/artifacts
+      - id: zip
+        name: Zip assets
         env:
           ZIP_OUTPUT_NAME: ${{ inputs.release-prefix }}_${{ steps.semver.outputs.version }}
-        run: zip -r "${ZIP_OUTPUT_NAME//\//_}.zip" "${PATH_TO_ARTIFACTS}"/*
+        run: |
+          ZIP_NAME="${ZIP_OUTPUT_NAME//\//_}.zip"
+          zip -r "${ZIP_NAME}" "${{ runner.temp }}/artifacts"/*
+          echo "output=${ZIP_NAME}" >> $GITHUB_OUTPUT
       - name: Release
         uses: EasyDesk/action-semver-release@v1
         with:
@@ -41,7 +43,7 @@ jobs:
           prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
           prefix: ${{ inputs.release-prefix }}
           files: |
-            *.zip
+            ${{ steps.zip.outputs.output }}
             LICENSE*
       - name: Notify release
         id: release-notification
