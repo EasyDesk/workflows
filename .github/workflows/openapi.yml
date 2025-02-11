@@ -41,17 +41,14 @@ jobs:
         uses: EasyDesk/action-dotnet@v1
         with:
           script: |
-            ${{ inputs.openapi-command }} > ${{ inputs.output-file }}
+            ${{ inputs.openapi-command }} > "${{ runner.temp }}/openapi/${{ inputs.output-file }}"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.openapi-artifact-name }}
-          path: ${{ inputs.output-file }}
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: asd
+          path: ${{ runner.temp }}/openapi
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           path: publish
+      - run: ls -alh publish
