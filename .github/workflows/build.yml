@@ -51,7 +51,7 @@ defaults:
 jobs:
   build:
     name: Build & Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.semver.outputs.version }}
       should-release: ${{ steps.semver.outputs.should-release }}
