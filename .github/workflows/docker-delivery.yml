@@ -67,7 +67,7 @@ jobs:
             maintainer=${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
             org.opencontainers.image.title=${{ inputs.image-name }}
           flavor: |
-            latest=${{ steps.semver.outputs.should-release }}
+            latest=${{ steps.semver.outputs.should-release || secrets.registry-url == '' }}
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         if : ${{ steps.meta.outputs.tags != '' }}
