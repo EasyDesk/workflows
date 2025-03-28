@@ -60,6 +60,7 @@ jobs:
             ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
           tags: |
             type=edge
+            type=raw,value=dev,enable=${{ secrets.registry-url == '' }}
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }},enable=${{ steps.semver.outputs.should-release }}
@@ -67,7 +68,7 @@ jobs:
             maintainer=${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
             org.opencontainers.image.title=${{ inputs.image-name }}
           flavor: |
-            latest=${{ steps.semver.outputs.should-release || secrets.registry-url == '' }}
+            latest=${{ steps.semver.outputs.should-release }}
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         if : ${{ steps.meta.outputs.tags != '' }}
