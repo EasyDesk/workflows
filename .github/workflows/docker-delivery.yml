@@ -15,7 +15,7 @@ on:
       docker-username:
         required: false
       docker-password:
-        required: true
+        required: false
       registry-url:
         required: false
 
