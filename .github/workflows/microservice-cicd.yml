@@ -94,7 +94,6 @@ jobs:
   openapi:
     name: Generate OpenAPI Document
     needs: [build]
-    if: ${{ inputs.openapi-command != '' }}
     uses: ./.github/workflows/openapi.yml
     with:
       openapi-command: ${{ inputs.openapi-command }}
