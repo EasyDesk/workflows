@@ -94,6 +94,7 @@ jobs:
   openapi:
     name: Generate OpenAPI Document
     needs: [build]
+    if: ${{ inputs.openapi-command != '' }}
     uses: ./.github/workflows/openapi.yml
     with:
       openapi-command: ${{ inputs.openapi-command }}
@@ -106,7 +107,7 @@ jobs:
   release:
     name: GitHub Release
     needs: [build, docker-build, openapi]
-    if: needs.build.outputs.should-release == 'true'
+    if: always() && !failure() && needs.build.outputs.should-release == 'true'
     uses: ./.github/workflows/github-delivery.yml
     with:
       release-prefix: ${{ inputs.release-prefix }}

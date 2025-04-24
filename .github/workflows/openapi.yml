@@ -25,7 +25,6 @@ on:
 
 jobs:
   generate:
-    if: ${{ inputs.openapi-command != '' }}
     name: Generate OpenAPI Document
     runs-on: ubuntu-latest
     steps:
