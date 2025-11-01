@@ -33,7 +33,7 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
       - name: Download Build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ inputs.build-artifact-name }}
       - id: generate
