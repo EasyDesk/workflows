@@ -43,7 +43,7 @@ jobs:
           script: |
             ${{ inputs.openapi-command }} > "${{ inputs.output-file }}"
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.openapi-artifact-name }}
           path: ${{ inputs.output-file }}
