@@ -78,12 +78,12 @@ jobs:
         with:
           warnings-as-errors: ${{ inputs.warnings-as-errors }}
       - name: Run Unit Tests
-        uses: EasyDesk/action-dotnet-test@v3
+        uses: EasyDesk/action-dotnet-test@v4
         if: inputs.unit-tests-project != ''
         with:
           test-args: --project "${{ inputs.unit-tests-project }}" ${{ inputs.additional-test-arguments }}
       - name: Run Integration Tests
-        uses: EasyDesk/action-dotnet-test@v1
+        uses: EasyDesk/action-dotnet-test@v4
         if: inputs.integration-tests-project != ''
         with:
           test-args: --project "${{ inputs.integration-tests-project }}" ${{ inputs.additional-test-arguments }}
