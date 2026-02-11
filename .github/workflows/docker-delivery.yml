@@ -11,6 +11,14 @@ on:
         type: string
         required: false
         default: Dockerfile
+      submodules:
+        description: >
+          true: checkout submodules
+          false: don't checkout submodules
+          recursive: recursively checkout submodules
+        required: false
+        default: 'false'
+        type: string
     secrets:
       docker-username:
         required: false
@@ -45,6 +53,8 @@ jobs:
       - name: Checkout
         id: semver
         uses: EasyDesk/action-semver-checkout@v1
+        with:
+          submodules: ${{ inputs.submodules }}
       - name: Login to Docker Container Registry
         uses: docker/login-action@v3
         with:

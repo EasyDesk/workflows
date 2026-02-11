@@ -52,6 +52,14 @@ on:
         type: string
         required: false
         default: 'openapi'
+      submodules:
+        description: >
+          true: checkout submodules
+          false: don't checkout submodules
+          recursive: recursively checkout submodules
+        required: false
+        default: 'false'
+        type: string
     secrets:
       registry-url:
         required: false
@@ -70,6 +78,7 @@ jobs:
     name: Build Microservice
     uses: ./.github/workflows/build.yml
     with:
+      submodules: ${{ inputs.submodules }}
       dotnet-version: ${{ inputs.dotnet-version }}
       warnings-as-errors: ${{ inputs.warnings-as-errors }}
       unit-tests-project: ${{ inputs.unit-tests-project }}
@@ -84,6 +93,7 @@ jobs:
     if: ${{ inputs.dockerfile != '' }}
     uses: ./.github/workflows/docker-delivery.yml
     with:
+      submodules: ${{ inputs.submodules }}
       dockerfile: ${{ inputs.dockerfile }}
       image-name: ${{ inputs.image-name }}
     secrets:
@@ -110,4 +120,5 @@ jobs:
     if: always() && !failure() && needs.build.outputs.should-release == 'true'
     uses: ./.github/workflows/github-delivery.yml
     with:
+      submodules: ${{ inputs.submodules }}
       release-prefix: ${{ inputs.release-prefix }}

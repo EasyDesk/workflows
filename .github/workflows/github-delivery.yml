@@ -7,6 +7,14 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
+      submodules:
+        description: >
+          true: checkout submodules
+          false: don't checkout submodules
+          recursive: recursively checkout submodules
+        required: false
+        default: 'false'
+        type: string
     outputs:
       released:
         value: ${{ jobs.release.outputs.released == 'true' }}
@@ -27,6 +35,8 @@ jobs:
       - name: Checkout
         id: semver
         uses: EasyDesk/action-semver-checkout@v1
+        with:
+          submodules: ${{ inputs.submodules }}
       - uses: actions/download-artifact@v7
         with:
           path: ${{ runner.temp }}/artifacts

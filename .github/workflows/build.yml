@@ -28,6 +28,14 @@ on:
         type: string
         required: false
         default: ''
+      submodules:
+        description: >
+          true: checkout submodules
+          false: don't checkout submodules
+          recursive: recursively checkout submodules
+        required: false
+        default: 'false'
+        type: string
     outputs:
       version:
         value: ${{ jobs.build.outputs.version }}
@@ -67,6 +75,8 @@ jobs:
       - id: semver
         name: Checkout
         uses: EasyDesk/action-semver-checkout@v1
+        with:
+          submodules: ${{ inputs.submodules }}
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
