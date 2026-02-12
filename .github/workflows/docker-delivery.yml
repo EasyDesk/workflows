@@ -11,6 +11,9 @@ on:
         type: string
         required: false
         default: Dockerfile
+      stage:
+        type: string
+        required: false
       submodules:
         description: >
           true: checkout submodules
@@ -85,6 +88,7 @@ jobs:
         with:
           context: .
           file: ${{ inputs.dockerfile }}
+          target: ${{ inputs.stage }}
           no-cache: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
