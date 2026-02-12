@@ -95,7 +95,7 @@ jobs:
             org.opencontainers.image.title=${{ inputs.image-name }}
           flavor: |
             latest=${{ steps.semver.outputs.should-release }}
-            suffix=${{ case(inputs.tag-suffix == '', '', format('-%s', inputs.tag-suffix)) }},onlatest=true
+            suffix=${{ case(inputs.tag-suffix == '', '', format('-{0}', inputs.tag-suffix)) }},onlatest=true
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         if : ${{ steps.meta.outputs.tags != '' }}
