@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency:
       cancel-in-progress: false
-      group: docker-push-${{ inputs.image-name }}
+      group: docker-push-${{ inputs.image-name }}-${{ inputs.tag-suffix }}
     services:
       registry:
         image: registry:2
