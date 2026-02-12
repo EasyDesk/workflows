@@ -25,6 +25,10 @@ on:
         required: false
         default: 'false'
         type: string
+      tag-suffix:
+        type: string
+        required: false
+        default: ''
     secrets:
       docker-username:
         required: false
@@ -73,6 +77,16 @@ jobs:
           registry: ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}
           username: ${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
           password: ${{ secrets.docker-password || 'password' }}
+      - name: Prepare Suffix
+        id: prepare-suffix
+        run: |
+          if [[ -n "${{ inputs.tag-suffix }}" ]]; then
+            echo "tag-suffix=-${{ inputs.tag-suffix }}" >> $GITHUB_OUTPUT
+            echo "tag-edge=type=edge" >> $GITHUB_OUTPUT
+          else
+            echo "tag-suffix=" >> $GITHUB_OUTPUT
+            echo "tag-edge=" >> $GITHUB_OUTPUT
+          fi
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -81,11 +95,11 @@ jobs:
             ${{ env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
             ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
           tags: |
-            type=edge
-            type=raw,value=dev,enable=${{ secrets.registry-url == '' }}
-            type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }},enable=${{ steps.semver.outputs.should-release }}
-            type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }},enable=${{ steps.semver.outputs.should-release }}
-            type=raw,value=${{ steps.semver.outputs.major }},enable=${{ steps.semver.outputs.should-release }}
+            ${{ steps.prepare-suffix.outputs.tag-edge }}
+            type=raw,value=dev${{ steps.prepare-suffix.outputs.tag-suffix }},enable=${{ secrets.registry-url == '' }}
+            type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }}${{ steps.prepare-suffix.outputs.tag-suffix }},enable=${{ steps.semver.outputs.should-release }}
+            type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}${{ steps.prepare-suffix.outputs.tag-suffix }},enable=${{ steps.semver.outputs.should-release }}
+            type=raw,value=${{ steps.semver.outputs.major }}${{ steps.prepare-suffix.outputs.tag-suffix }},enable=${{ steps.semver.outputs.should-release }}
           labels: |
             maintainer=${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
             org.opencontainers.image.title=${{ inputs.image-name }}
