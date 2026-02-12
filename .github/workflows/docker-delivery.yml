@@ -104,7 +104,6 @@ jobs:
           file: ${{ inputs.dockerfile }}
           target: ${{ inputs.stage }}
           build-args: ${{ inputs.build-args }}
-          no-cache: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
