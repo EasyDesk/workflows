@@ -36,6 +36,12 @@ on:
       dockerfile:
         type: string
         required: false
+      docker-stage:
+        type: string
+        required: false
+      docker-build-args:
+        type: string
+        required: false
       image-name:
         type: string
         required: false
@@ -94,8 +100,10 @@ jobs:
     uses: ./.github/workflows/docker-delivery.yml
     with:
       submodules: ${{ inputs.submodules }}
-      dockerfile: ${{ inputs.dockerfile }}
       image-name: ${{ inputs.image-name }}
+      dockerfile: ${{ inputs.dockerfile }}
+      stage: ${{ inputs.docker-stage }}
+      build-args: ${{ inputs.docker-build-args }}
     secrets:
       registry-url: ${{ secrets.registry-url }}
       docker-username: ${{ secrets.docker-username || github.repository_owner }}
