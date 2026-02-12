@@ -14,6 +14,10 @@ on:
       stage:
         type: string
         required: false
+      build-args:
+        type: string
+        required: false
+        default: ''
       submodules:
         description: >
           true: checkout submodules
@@ -29,6 +33,12 @@ on:
         required: false
       registry-url:
         required: false
+
+
+defaults:
+  run:
+    shell: bash
+
 
 jobs:
   docker-build:
@@ -82,6 +92,14 @@ jobs:
             org.opencontainers.image.title=${{ inputs.image-name }}
           flavor: |
             latest=${{ steps.semver.outputs.should-release }}
+      - name: Parse build args
+        id: parse-build-args
+        env:
+          BUILD_ARGS: ${{ inputs.build-args }}
+        run: |
+          BUILD_ARGS=(${BUILD_ARGS//,/ })
+          BUILD_ARGS_JSON=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${BUILD_ARGS[@]}")
+          echo "build-args=$BUILD_ARGS_JSON" >> $GITHUB_OUTPUT
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         if : ${{ steps.meta.outputs.tags != '' }}
@@ -89,6 +107,7 @@ jobs:
           context: .
           file: ${{ inputs.dockerfile }}
           target: ${{ inputs.stage }}
+          build-args: ${{ fromJson(steps.parse-build-args.outputs.build-args) }}
           no-cache: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
