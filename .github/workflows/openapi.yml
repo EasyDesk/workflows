@@ -37,8 +37,7 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
+          cache: false
       - name: Download Build artifacts
         uses: actions/download-artifact@v7
         with:
