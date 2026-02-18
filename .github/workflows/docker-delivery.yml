@@ -66,6 +66,10 @@ jobs:
       DEFAULT_DOCKER_USERNAME: ${{ github.repository_owner }}
       DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
+      - name: Setup Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          version: 28.5.2
       - name: Checkout
         id: semver
         uses: EasyDesk/action-semver-checkout@v1
