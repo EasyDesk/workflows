@@ -39,7 +39,7 @@ jobs:
           dotnet-version: ${{ inputs.dotnet-version }}
           cache: false
       - name: Download Build artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.build-artifact-name }}
       - id: generate
