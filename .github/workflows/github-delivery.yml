@@ -37,7 +37,7 @@ jobs:
         uses: EasyDesk/action-semver-checkout@v1
         with:
           submodules: ${{ inputs.submodules }}
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           path: ${{ runner.temp }}/artifacts
       - id: zip
