@@ -67,7 +67,7 @@ jobs:
       DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
       - name: Setup Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           version: 28.5.2
       - name: Checkout
