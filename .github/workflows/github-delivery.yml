@@ -25,7 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       released: ${{ steps.release-notification.outputs.released }}
-    concurrency: release
+    concurrency:
+      cancel-in-progress: false
+      group: github-release-${{ github.repository }}-${{ inputs.release-prefix }}-${{ github.ref }}
     defaults:
       run:
         shell: bash

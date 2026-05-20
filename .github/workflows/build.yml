@@ -10,13 +10,10 @@ on:
         type: boolean
         required: false
         default: false
-      unit-tests-project:
+      tests-projects:
         type: string
         required: false
-        default: ''
-      integration-tests-project:
-        type: string
-        required: false
+        description: JSON array of test projects to run, e.g. '["tests/Project1.UnitTests/Project1.UnitTests.csproj", "tests/Project1.IntegrationTests/Project1.IntegrationTests.csproj"]'
         default: ''
       build-artifact-name:
         type: string
@@ -38,17 +35,17 @@ on:
         type: string
     outputs:
       version:
-        value: ${{ jobs.build.outputs.version }}
+        value: ${{ jobs.publish.outputs.version }}
       should-release:
-        value: ${{ jobs.build.outputs.should-release }}
+        value: ${{ jobs.publish.outputs.should-release }}
       is-prerelease:
-        value: ${{ jobs.build.outputs.is-prerelease }}
+        value: ${{ jobs.publish.outputs.is-prerelease }}
       major:
-        value: ${{ jobs.build.outputs.major }}
+        value: ${{ jobs.publish.outputs.major }}
       minor:
-        value: ${{ jobs.build.outputs.minor }}
+        value: ${{ jobs.publish.outputs.minor }}
       patch:
-        value: ${{ jobs.build.outputs.patch }}
+        value: ${{ jobs.publish.outputs.patch }}
 
 
 defaults:
@@ -62,7 +59,55 @@ env:
 
 jobs:
   build:
-    name: Build & Test
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: EasyDesk/action-semver-checkout@v1
+        with:
+          submodules: ${{ inputs.submodules }}
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - name: Build
+        uses: EasyDesk/action-dotnet-build@v1
+        with:
+          warnings-as-errors: ${{ inputs.warnings-as-errors }}
+
+  tests:
+    name: Unit Tests
+    needs: build
+    runs-on: ubuntu-latest
+    if: inputs.tests-projects != '' && inputs.tests-projects != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(inputs.tests-projects) }}
+    steps:
+      - name: Checkout
+        uses: EasyDesk/action-semver-checkout@v1
+        with:
+          submodules: ${{ inputs.submodules }}
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - name: Run Unit Tests
+        uses: EasyDesk/action-dotnet-test@v4
+        with:
+          test-args: --project "${{ matrix.project }}" ${{ inputs.additional-test-arguments }}
+
+  publish:
+    name: Publish
+    needs:
+      - build
+      - tests
+    if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.semver.outputs.version }}
@@ -83,20 +128,6 @@ jobs:
           dotnet-version: ${{ inputs.dotnet-version }}
           cache: true
           cache-dependency-path: '**/packages.lock.json'
-      - name: Build
-        uses: EasyDesk/action-dotnet-build@v1
-        with:
-          warnings-as-errors: ${{ inputs.warnings-as-errors }}
-      - name: Run Unit Tests
-        uses: EasyDesk/action-dotnet-test@v4
-        if: inputs.unit-tests-project != ''
-        with:
-          test-args: --project "${{ inputs.unit-tests-project }}" ${{ inputs.additional-test-arguments }}
-      - name: Run Integration Tests
-        uses: EasyDesk/action-dotnet-test@v4
-        if: inputs.integration-tests-project != ''
-        with:
-          test-args: --project "${{ inputs.integration-tests-project }}" ${{ inputs.additional-test-arguments }}
       - name: Create temporary directory
         id: tempdir
         run: |

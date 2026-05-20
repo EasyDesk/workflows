@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency:
       cancel-in-progress: false
-      group: docker-push-${{ inputs.image-name }}-${{ inputs.tag-suffix }}
+      group: docker-push-${{ github.repository }}-${{ inputs.image-name }}-${{ inputs.tag-suffix }}
     services:
       registry:
         image: registry:2
@@ -63,7 +63,8 @@ jobs:
       contents: write
     env:
       DEFAULT_REGISTRY: localhost:5000
-      DEFAULT_DOCKER_USERNAME: ${{ github.repository_owner }}
+      SELECTED_REGISTRY: ${{ secrets.registry-url || 'localhost:5000' }}
+      SELECTED_DOCKER_USERNAME: ${{ secrets.docker-username || github.repository_owner }}
       DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
       - name: Setup Docker
@@ -78,24 +79,23 @@ jobs:
       - name: Login to Docker Container Registry
         uses: docker/login-action@v4
         with:
-          registry: ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}
-          username: ${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
+          registry: ${{ env.SELECTED_REGISTRY }}
+          username: ${{ env.SELECTED_DOCKER_USERNAME }}
           password: ${{ secrets.docker-password || 'password' }}
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: |
-            ${{ env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
-            ${{ secrets.registry-url || env.DEFAULT_REGISTRY }}/${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}/${{ inputs.image-name }}
+            ${{ format('{0}/{1}/{2}', env.SELECTED_REGISTRY, env.SELECTED_DOCKER_USERNAME, inputs.image-name) }}
           tags: |
             type=edge
-            type=raw,value=dev,enable=${{ secrets.registry-url == '' }}
+            type=raw,value=dev,enable=${{ env.SELECTED_REGISTRY == env.DEFAULT_REGISTRY }}
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}.${{ steps.semver.outputs.patch }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }},enable=${{ steps.semver.outputs.should-release }}
             type=raw,value=${{ steps.semver.outputs.major }},enable=${{ steps.semver.outputs.should-release }}
           labels: |
-            maintainer=${{ secrets.docker-username || env.DEFAULT_DOCKER_USERNAME }}
+            maintainer=${{ env.SELECTED_DOCKER_USERNAME }}
             org.opencontainers.image.title=${{ inputs.image-name }}
           flavor: |
             latest=${{ steps.semver.outputs.should-release }}
@@ -112,5 +112,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Inspect
+        if: ${{ env.SELECTED_REGISTRY == env.DEFAULT_REGISTRY }}
         run: |
           curl -X GET http://localhost:5000/v2/_catalog

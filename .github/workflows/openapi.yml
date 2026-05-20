@@ -6,9 +6,6 @@ on:
       openapi-command:
         type: string
         required: true
-      project:
-        type: string
-        required: true
       dotnet-version:
         type: string
         required: true

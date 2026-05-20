@@ -5,7 +5,9 @@ on:
     tags:
       - "*"
 
-concurrency: new-tag
+concurrency:
+  cancel-in-progress: false
+  group: workflow-ci-${{ github.repository }}-${{ github.ref }}
 jobs:
   release:
     name: GitHub Release

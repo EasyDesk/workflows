@@ -10,13 +10,10 @@ on:
         type: boolean
         required: false
         default: false
-      unit-tests-project:
+      test-projects:
         type: string
         required: false
-        default: ''
-      integration-tests-project:
-        type: string
-        required: false
+        description: JSON array of test projects to run, e.g. '["tests/Project1.UnitTests/Project1.UnitTests.csproj", "tests/Project1.IntegrationTests/Project1.IntegrationTests.csproj"]'
         default: ''
       additional-test-arguments:
         type: string
@@ -87,8 +84,7 @@ jobs:
       submodules: ${{ inputs.submodules }}
       dotnet-version: ${{ inputs.dotnet-version }}
       warnings-as-errors: ${{ inputs.warnings-as-errors }}
-      unit-tests-project: ${{ inputs.unit-tests-project }}
-      integration-tests-project: ${{ inputs.integration-tests-project }}
+      tests-projects: ${{ inputs.test-projects }}
       build-artifact-name: ${{ inputs.artifact-name }}
       projects: ${{ inputs.main-project }}
       additional-test-arguments: ${{ inputs.additional-test-arguments }}
@@ -116,7 +112,6 @@ jobs:
     uses: ./.github/workflows/openapi.yml
     with:
       openapi-command: ${{ inputs.openapi-command }}
-      project: ${{ inputs.main-project }}
       dotnet-version: ${{ inputs.dotnet-version }}
       output-file: ${{ inputs.openapi-file }}
       build-artifact-name: ${{ inputs.artifact-name }}
@@ -125,7 +120,7 @@ jobs:
   release:
     name: GitHub Release
     needs: [build, docker-build, openapi]
-    if: always() && !failure() && needs.build.outputs.should-release == 'true'
+    if: ${{ !cancelled() && !failure() && needs.build.outputs.should-release == 'true' }}
     uses: ./.github/workflows/github-delivery.yml
     with:
       submodules: ${{ inputs.submodules }}
