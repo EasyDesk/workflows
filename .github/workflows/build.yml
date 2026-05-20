@@ -101,9 +101,10 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - name: Run Tests
-        run: |
-          dotnet test --project ${{ matrix.test }}
-        shell: bash
+        uses: EasyDesk/action-dotnet-test@v4
+        with:
+          test-args: --project ${{ matrix.test }}
+          skip-build: false
 
   publish:
     name: Publish
