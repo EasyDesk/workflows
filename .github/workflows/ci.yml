@@ -18,16 +18,13 @@ jobs:
   release:
     name: GitHub Release
     needs: test-sample
+    if: ${{ needs.test-sample.outputs.released == 'true' }}
     runs-on: ubuntu-latest
     concurrency:
       cancel-in-progress: false
       group: workflow-ci-${{ github.repository }}-${{ github.ref }}
     steps:
-      - id: semver-checkout
-        name: Checkout
-        uses: EasyDesk/action-semver-checkout@v1
       - name: Remove Existing Release For Tag
-        if: ${{ steps.semver-checkout.outputs.should-release == 'true' }}
         uses: actions/github-script@v9
         with:
           script: |
@@ -54,8 +51,7 @@ jobs:
               throw error;
             }
       - name: Release
-        if: ${{ steps.semver-checkout.outputs.should-release == 'true' }}
         uses: EasyDesk/action-semver-release@v1
         with:
-          version: ${{ steps.semver-checkout.outputs.version }}
-          prerelease: ${{ steps.semver-checkout.outputs.is-github-prerelease }}
+          version: ${{ needs.test-sample.outputs.version }}
+          prerelease: ${{ contains(needs.test-sample.outputs.version, '-') }}

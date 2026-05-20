@@ -2,6 +2,13 @@ name: Sample CI
 
 on:
   workflow_call:
+    outputs:
+      released:
+        description: Whether microservice CI/CD produced a release
+        value: ${{ jobs.build.outputs.released }}
+      version:
+        description: Release version from microservice CI/CD
+        value: ${{ jobs.build.outputs.version }}
 
 jobs:
   build:
