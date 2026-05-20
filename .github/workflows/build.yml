@@ -129,7 +129,7 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - name: Download Build Artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.build-artifact-name }}
           path: build-artifact
