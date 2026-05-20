@@ -89,7 +89,7 @@ jobs:
       warnings-as-errors: ${{ inputs.warnings-as-errors }}
       tests: ${{ inputs.tests }}
       build-artifact-name: ${{ inputs.artifact-name }}
-      projects: ${{ inputs.main-project }}
+      project: ${{ inputs.main-project }}
 
   docker-build:
     name: Build Docker Images

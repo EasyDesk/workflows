@@ -24,7 +24,7 @@ on:
       build-artifact-name:
         type: string
         required: true
-      projects:
+      project:
         type: string
         required: true
       submodules:
@@ -77,7 +77,7 @@ jobs:
       - name: Build
         uses: EasyDesk/action-dotnet-build@v1
         with:
-          path: ${{ inputs.projects }}
+          path: ${{ inputs.project }}
           warnings-as-errors: ${{ inputs.warnings-as-errors }}
 
   test:
@@ -138,7 +138,7 @@ jobs:
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
         with:
-          path: ${{ inputs.projects }}
+          path: ${{ inputs.project }}
           output-dir: ${{ steps.tempdir.outputs.tempdir }}
       - uses: actions/upload-artifact@v7
         with:
