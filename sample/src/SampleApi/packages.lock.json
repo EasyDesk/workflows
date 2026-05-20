@@ -11,6 +11,12 @@
           "Microsoft.OpenApi": "2.0.0"
         }
       },
+      "Microsoft.Extensions.ApiDescription.Server": {
+        "type": "Direct",
+        "requested": "[10.0.8, )",
+        "resolved": "10.0.8",
+        "contentHash": "fikrKwWqzn/72glL9bTNnuberYPrKldDdgyR1cnW9gbfUXN4oG4eg+uXkTUXuIPcEjwCeOTTTja0VpsHf50tWA=="
+      },
       "Microsoft.OpenApi": {
         "type": "Transitive",
         "resolved": "2.0.0",

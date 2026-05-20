@@ -91,17 +91,12 @@ jobs:
         id: tempdir
         run: |
           echo "tempdir=$(mktemp -d)" >> $GITHUB_OUTPUT
-      - name: Build Publish Project
-        uses: EasyDesk/action-dotnet-build@v1
-        with:
-          path: ${{ inputs.project }}
-          warnings-as-errors: ${{ inputs.warnings-as-errors }}
       - name: Publish
         uses: EasyDesk/action-dotnet-publish@v1
         with:
           path: ${{ inputs.project }}
           output-dir: ${{ steps.tempdir.outputs.tempdir }}
-          skip-build: true
+          skip-build: false
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:

@@ -12,6 +12,7 @@ jobs:
       main-project: sample/src/SampleApi/SampleApi.csproj
       dockerfile: sample/Dockerfile
       image-name: sample-api
+      openapi-command: cat SampleApi.json
       tests: |
         [
           "sample/tests/SampleApi.UnitTests/SampleApi.UnitTests.csproj",
