@@ -20,7 +20,7 @@ jobs:
   ci:
     uses: EasyDesk/workflows/.github/workflows/microservice-cicd.yml@master
     with:
-      dotnet-version: 9.0.x
+      dotnet-version: 9.x
       main-project: src/MyService/MyService.csproj
       tests: |
         [
@@ -36,7 +36,7 @@ jobs:
   ci:
     uses: EasyDesk/workflows/.github/workflows/microservice-cicd.yml@master
     with:
-      dotnet-version: 9.0.x
+      dotnet-version: 9.x
       main-project: src/MyService/MyService.csproj
       tests: |
         [
