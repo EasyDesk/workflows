@@ -10,21 +10,23 @@ on:
         type: boolean
         required: false
         default: false
-      tests-projects:
+      tests:
         type: string
         required: false
-        description: JSON array of test projects to run, e.g. '["tests/Project1.UnitTests/Project1.UnitTests.csproj", "tests/Project1.IntegrationTests/Project1.IntegrationTests.csproj"]'
-        default: ''
+        description: >
+          JSON array of test strings.
+          Each string: <project_path> [optional_args]
+          Example: |
+            tests:
+              - tests/Project.UnitTests/Project.UnitTests.csproj
+              - "tests/My Test Project/Project.IntegrationTests.csproj" --filter "Category=Integration"
+        default: '[]'
       build-artifact-name:
         type: string
         required: true
       projects:
         type: string
         required: true
-      additional-test-arguments:
-        type: string
-        required: false
-        default: ''
       submodules:
         description: >
           true: checkout submodules
@@ -77,15 +79,15 @@ jobs:
         with:
           warnings-as-errors: ${{ inputs.warnings-as-errors }}
 
-  tests:
-    name: Unit Tests
+  test:
+    name: Test
     needs: build
     runs-on: ubuntu-latest
-    if: inputs.tests-projects != '' && inputs.tests-projects != '[]'
+    if: ${{ inputs.tests != '[]' }}
     strategy:
       fail-fast: false
       matrix:
-        project: ${{ fromJson(inputs.tests-projects) }}
+        test: ${{ fromJson(inputs.tests) }}
     steps:
       - name: Checkout
         uses: EasyDesk/action-semver-checkout@v1
@@ -97,16 +99,16 @@ jobs:
           dotnet-version: ${{ inputs.dotnet-version }}
           cache: true
           cache-dependency-path: '**/packages.lock.json'
-      - name: Run Unit Tests
-        uses: EasyDesk/action-dotnet-test@v4
-        with:
-          test-args: --project "${{ matrix.project }}" ${{ inputs.additional-test-arguments }}
+      - name: Run Tests
+        run: |
+          dotnet test --project ${{ matrix.test }}
+        shell: bash
 
   publish:
     name: Publish
     needs:
       - build
-      - tests
+      - test
     if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     outputs:

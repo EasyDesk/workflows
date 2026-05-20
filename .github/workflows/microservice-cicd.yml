@@ -10,15 +10,18 @@ on:
         type: boolean
         required: false
         default: false
-      test-projects:
+      tests:
         type: string
         required: false
-        description: JSON array of test projects to run, e.g. '["tests/Project1.UnitTests/Project1.UnitTests.csproj", "tests/Project1.IntegrationTests/Project1.IntegrationTests.csproj"]'
-        default: ''
-      additional-test-arguments:
-        type: string
-        required: false
-        default: ''
+        description: >
+          JSON array of test strings.
+          Each string: <project_path> [optional_args]
+          Example: |
+            tests:
+              - tests/Project.UnitTests/Project.UnitTests.csproj
+              - "tests/My Test Project/Project.IntegrationTests.csproj" --filter "Category=Integration"
+          Use [] to skip tests.
+        default: '[]'
       artifact-name:
         type: string
         required: false
@@ -84,10 +87,9 @@ jobs:
       submodules: ${{ inputs.submodules }}
       dotnet-version: ${{ inputs.dotnet-version }}
       warnings-as-errors: ${{ inputs.warnings-as-errors }}
-      tests-projects: ${{ inputs.test-projects }}
+      tests: ${{ inputs.tests }}
       build-artifact-name: ${{ inputs.artifact-name }}
       projects: ${{ inputs.main-project }}
-      additional-test-arguments: ${{ inputs.additional-test-arguments }}
 
   docker-build:
     name: Build Docker Images
