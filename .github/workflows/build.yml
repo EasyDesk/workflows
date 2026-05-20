@@ -37,17 +37,17 @@ on:
         type: string
     outputs:
       version:
-        value: ${{ jobs.publish.outputs.version }}
+        value: ${{ jobs.build.outputs.version }}
       should-release:
-        value: ${{ jobs.publish.outputs.should-release }}
+        value: ${{ jobs.build.outputs.should-release }}
       is-prerelease:
-        value: ${{ jobs.publish.outputs.is-prerelease }}
+        value: ${{ jobs.build.outputs.is-prerelease }}
       major:
-        value: ${{ jobs.publish.outputs.major }}
+        value: ${{ jobs.build.outputs.major }}
       minor:
-        value: ${{ jobs.publish.outputs.minor }}
+        value: ${{ jobs.build.outputs.minor }}
       patch:
-        value: ${{ jobs.publish.outputs.patch }}
+        value: ${{ jobs.build.outputs.patch }}
 
 
 defaults:
@@ -63,8 +63,16 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      should-release: ${{ steps.semver.outputs.should-release }}
+      is-prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
+      major: ${{ steps.semver.outputs.major }}
+      minor: ${{ steps.semver.outputs.minor }}
+      patch: ${{ steps.semver.outputs.patch }}
     steps:
-      - name: Checkout
+      - id: semver
+        name: Checkout
         uses: EasyDesk/action-semver-checkout@v1
         with:
           submodules: ${{ inputs.submodules }}
@@ -79,6 +87,26 @@ jobs:
         with:
           path: ${{ inputs.project }}
           warnings-as-errors: ${{ inputs.warnings-as-errors }}
+      - name: Create temporary directory
+        id: tempdir
+        run: |
+          echo "tempdir=$(mktemp -d)" >> $GITHUB_OUTPUT
+      - name: Build Publish Project
+        uses: EasyDesk/action-dotnet-build@v1
+        with:
+          path: ${{ inputs.project }}
+          warnings-as-errors: ${{ inputs.warnings-as-errors }}
+      - name: Publish
+        uses: EasyDesk/action-dotnet-publish@v1
+        with:
+          path: ${{ inputs.project }}
+          output-dir: ${{ steps.tempdir.outputs.tempdir }}
+          skip-build: true
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.build-artifact-name }}
+          path: ${{ steps.tempdir.outputs.tempdir }}
 
   test:
     name: Test
@@ -100,48 +128,28 @@ jobs:
           dotnet-version: ${{ inputs.dotnet-version }}
           cache: true
           cache-dependency-path: '**/packages.lock.json'
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ inputs.build-artifact-name }}
+          path: build-artifact
+      - name: Resolve Test Project Path
+        id: test-project
+        run: |
+          value='${{ matrix.test }}'
+          if [[ "$value" =~ ^\"([^\"]+)\" ]]; then
+            project="${BASH_REMATCH[1]}"
+          else
+            project="${value%% *}"
+          fi
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+      - name: Build Test Project
+        uses: EasyDesk/action-dotnet-build@v1
+        with:
+          path: ${{ steps.test-project.outputs.project }}
+          warnings-as-errors: ${{ inputs.warnings-as-errors }}
       - name: Run Tests
         uses: EasyDesk/action-dotnet-test@v4
         with:
           test-args: --project ${{ matrix.test }}
-          skip-build: false
-
-  publish:
-    name: Publish
-    needs:
-      - build
-      - test
-    if: ${{ !cancelled() && !failure() }}
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.semver.outputs.version }}
-      should-release: ${{ steps.semver.outputs.should-release }}
-      is-prerelease: ${{ steps.semver.outputs.is-github-prerelease }}
-      major: ${{ steps.semver.outputs.major }}
-      minor: ${{ steps.semver.outputs.minor }}
-      patch: ${{ steps.semver.outputs.patch }}
-    steps:
-      - id: semver
-        name: Checkout
-        uses: EasyDesk/action-semver-checkout@v1
-        with:
-          submodules: ${{ inputs.submodules }}
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ inputs.dotnet-version }}
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
-      - name: Create temporary directory
-        id: tempdir
-        run: |
-          echo "tempdir=$(mktemp -d)" >> $GITHUB_OUTPUT
-      - name: Publish
-        uses: EasyDesk/action-dotnet-publish@v1
-        with:
-          path: ${{ inputs.project }}
-          output-dir: ${{ steps.tempdir.outputs.tempdir }}
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ inputs.build-artifact-name }}
-          path: ${{ steps.tempdir.outputs.tempdir }}
+          skip-build: true
