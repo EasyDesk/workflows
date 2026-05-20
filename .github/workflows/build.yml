@@ -15,12 +15,17 @@ on:
         required: false
         description: >
           JSON array of test strings.
-          Each string: <project_path> [optional_args]
+          Each string: <project_path> [optional_args], relative to tests-root.
           Example: |
             tests:
               - tests/Project.UnitTests/Project.UnitTests.csproj
               - "tests/My Test Project/Project.IntegrationTests.csproj" --filter "Category=Integration"
         default: '[]'
+      tests-root:
+        type: string
+        required: false
+        description: Root directory for test execution (used to discover global.json).
+        default: '.'
       build-artifact-name:
         type: string
         required: true
@@ -103,7 +108,7 @@ jobs:
       - name: Run Tests
         uses: EasyDesk/action-dotnet-test@v4
         with:
-          test-args: --project ${{ matrix.test }}
+          test-args: --root-directory ${{ inputs.tests-root }} --project ${{ matrix.test }}
           skip-build: false
 
   publish:
