@@ -28,7 +28,7 @@ jobs:
         uses: EasyDesk/action-semver-checkout@v1
       - name: Remove Existing Release For Tag
         if: ${{ steps.semver-checkout.outputs.should-release == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const tag = context.ref.replace('refs/tags/', '');
