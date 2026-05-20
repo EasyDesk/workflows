@@ -10,9 +10,6 @@ on:
     branches:
       - "**"
 
-concurrency:
-  cancel-in-progress: false
-  group: workflow-ci-${{ github.repository }}-${{ github.ref }}
 jobs:
   test-sample:
     name: Test Sample
@@ -22,6 +19,9 @@ jobs:
     name: GitHub Release
     needs: test-sample
     runs-on: ubuntu-latest
+    concurrency:
+      cancel-in-progress: false
+      group: workflow-ci-${{ github.repository }}-${{ github.ref }}
     steps:
       - id: semver-checkout
         name: Checkout
