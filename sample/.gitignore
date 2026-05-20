@@ -1,0 +1,50 @@
+# Build results
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.nupkg
+*.nuget.props
+*.nuget.targets
+
+# NuGet
+.nuget/packages/
+packages/
+*.nupkg
+*.snupkg
+.nuget/NuGet.Config
+.nuget/NuGet.exe
+
+# Build folders
+dist/
+publish/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test Results
+TestResults/
+.coverage/
+*.trx
+coverage.xml
+
+# Local environment files
+.env
+.env.local
+
+# lock files (optional, for debugging)
+packages.lock.json

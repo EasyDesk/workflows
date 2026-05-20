@@ -2,20 +2,57 @@ name: Workflow CI
 
 on:
   push:
+    branches:
+      - "**"
     tags:
       - "*"
+  pull_request:
+    branches:
+      - "**"
 
 concurrency:
   cancel-in-progress: false
   group: workflow-ci-${{ github.repository }}-${{ github.ref }}
 jobs:
+  test-sample:
+    name: Test Sample
+    uses: ./.github/workflows/sample-ci.yml
+
   release:
     name: GitHub Release
+    needs: test-sample
     runs-on: ubuntu-latest
     steps:
       - id: semver-checkout
         name: Checkout
         uses: EasyDesk/action-semver-checkout@v1
+      - name: Remove Existing Release For Tag
+        if: ${{ steps.semver-checkout.outputs.should-release == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+
+            try {
+              const { data: release } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag,
+              });
+
+              core.info(`Deleting existing release ${release.id} for tag ${tag}`);
+              await github.rest.repos.deleteRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+              });
+            } catch (error) {
+              if (error.status === 404) {
+                core.info(`No existing release found for tag ${tag}`);
+                return;
+              }
+              throw error;
+            }
       - name: Release
         if: ${{ steps.semver-checkout.outputs.should-release == 'true' }}
         uses: EasyDesk/action-semver-release@v1
