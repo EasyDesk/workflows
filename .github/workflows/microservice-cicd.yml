@@ -15,18 +15,13 @@ on:
         required: false
         description: >
           JSON array of test strings.
-          Each string: <project_path> [optional_args], relative to tests-root.
+          Each string: <project_path> [optional_args].
           Example: |
             tests:
               - tests/Project.UnitTests/Project.UnitTests.csproj
               - "tests/My Test Project/Project.IntegrationTests.csproj" --filter "Category=Integration"
           Use [] to skip tests.
         default: '[]'
-      tests-root:
-        type: string
-        required: false
-        description: Root directory for test execution (used to discover global.json).
-        default: '.'
       artifact-name:
         type: string
         required: false
@@ -93,7 +88,6 @@ jobs:
       dotnet-version: ${{ inputs.dotnet-version }}
       warnings-as-errors: ${{ inputs.warnings-as-errors }}
       tests: ${{ inputs.tests }}
-      tests-root: ${{ inputs.tests-root }}
       build-artifact-name: ${{ inputs.artifact-name }}
       project: ${{ inputs.main-project }}
 

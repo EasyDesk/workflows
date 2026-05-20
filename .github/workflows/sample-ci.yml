@@ -10,7 +10,6 @@ jobs:
       dotnet-version: 10.x
       warnings-as-errors: true
       main-project: sample/src/SampleApi/SampleApi.csproj
-      tests-root: sample
       tests: |
         [
           "tests/SampleApi.UnitTests/SampleApi.UnitTests.csproj",
