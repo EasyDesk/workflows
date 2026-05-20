@@ -12,6 +12,6 @@ jobs:
       main-project: sample/src/SampleApi/SampleApi.csproj
       tests: |
         [
-          "tests/SampleApi.UnitTests/SampleApi.UnitTests.csproj",
-          "tests/SampleApi.IntegrationTests/SampleApi.IntegrationTests.csproj"
+          "sample/tests/SampleApi.UnitTests/SampleApi.UnitTests.csproj",
+          "sample/tests/SampleApi.IntegrationTests/SampleApi.IntegrationTests.csproj"
         ]
