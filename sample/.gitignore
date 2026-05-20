@@ -46,5 +46,4 @@ coverage.xml
 .env
 .env.local
 
-# lock files (optional, for debugging)
-packages.lock.json
+# lock files
