@@ -113,14 +113,6 @@ Example:
 openapi-command: cat openapi.json
 ```
 
-You can also customize the generated file name in your project file:
-
-```xml
-<PropertyGroup>
-  <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
-</PropertyGroup>
-```
-
 Ensure your command writes JSON to stdout because openapi.yml redirects command output to the configured artifact file.
 
 ## Notes
