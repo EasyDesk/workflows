@@ -1,0 +1,14 @@
+name: Mirror Integration Test
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  mirror-to-ephemeral-git-server:
+    name: Mirror To Ephemeral Git Server
+    uses: ./.github/workflows/mirror.yml

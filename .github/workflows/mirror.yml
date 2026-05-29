@@ -1,0 +1,258 @@
+name: Repository Mirror
+
+on:
+  workflow_call:
+    inputs:
+      destination-url:
+        description: Optional HTTPS or SSH URL of the destination repository. Leave blank to run integration test mode.
+        required: false
+        default: ""
+        type: string
+      source-url:
+        description: Optional source URL. Defaults to the current GitHub repository URL.
+        required: false
+        default: ${{ github.server_url }}/${{ github.repository }}.git
+        type: string
+    secrets:
+      destination-token:
+        description: Token/password for HTTPS mirroring.
+        required: false
+      destination-username:
+        description: Username for HTTPS mirroring (defaults to oauth2).
+        required: false
+      destination-ssh-private-key:
+        description: Private SSH key for SSH mirroring.
+        required: false
+      destination-ssh-known-hosts:
+        description: Optional known_hosts content for strict SSH host verification.
+        required: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  mirror:
+    name: Mirror Git Refs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      gitlab:
+        image: ${{ (inputs.destination-url == '') && 'gitlab/gitlab-ce:latest' || '' }}
+        env:
+          GITLAB_ROOT_PASSWORD: mirror-ci-password
+          GITLAB_OMNIBUS_CONFIG: |
+            external_url 'http://127.0.0.1:8080'
+            nginx['listen_port'] = 80
+            gitlab_rails['initial_root_password'] = ENV['GITLAB_ROOT_PASSWORD']
+        ports:
+          - 8080:80
+    steps:
+      - name: Validate inputs
+        id: validate
+        run: |
+          set -euo pipefail
+
+          destination_url='${{ inputs.destination-url }}'
+
+          if [[ -z "$destination_url" ]]; then
+            destination_type="https"
+            test_mode="true"
+          elif [[ "$destination_url" =~ ^https?:// ]]; then
+            destination_type="https"
+            test_mode="false"
+          elif [[ "$destination_url" =~ ^ssh:// || "$destination_url" =~ ^git@ ]]; then
+            destination_type="ssh"
+            test_mode="false"
+          else
+            echo "Unable to detect destination transport from destination-url." >&2
+            echo "Use a HTTPS URL (https://...) or SSH URL (ssh://... or git@...:...)." >&2
+            exit 1
+          fi
+
+          if [[ "$destination_type" == "https" && "$test_mode" != "true" && -z '${{ secrets.destination-token }}' ]]; then
+            echo "destination-token secret is required for HTTPS mirroring." >&2
+            exit 1
+          fi
+
+          if [[ "$destination_type" == "ssh" && "$test_mode" != "true" && -z '${{ secrets.destination-ssh-private-key }}' ]]; then
+            echo "destination-ssh-private-key secret is required for SSH mirroring." >&2
+            exit 1
+          fi
+
+          echo "destination_type=$destination_type" >> "$GITHUB_OUTPUT"
+          echo "test_mode=$test_mode" >> "$GITHUB_OUTPUT"
+
+      - name: Bootstrap GitLab test project
+        if: ${{ steps.validate.outputs.test_mode == 'true' }}
+        run: |
+          set -euo pipefail
+
+          destination_username="root"
+          destination_token="mirror-ci-password"
+
+          for attempt in {1..120}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8080/-/readiness >/dev/null 2>&1; then
+              break
+            fi
+
+            if [[ "$attempt" -eq 120 ]]; then
+              echo "Test gitlab server did not become ready in time." >&2
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          curl --fail --silent --show-error \
+            -u "$destination_username:$destination_token" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d '{"name":"mirror","visibility":"public"}' \
+            http://127.0.0.1:8080/api/v4/projects >/dev/null
+
+      - name: Mirror refs
+        env:
+          DESTINATION_URL: ${{ steps.validate.outputs.test_mode == 'true' && 'http://127.0.0.1:8080/root/mirror.git' || inputs.destination-url }}
+          DESTINATION_TYPE: ${{ steps.validate.outputs.test_mode == 'true' && 'https' || steps.validate.outputs.destination_type }}
+          DESTINATION_USERNAME: ${{ steps.validate.outputs.test_mode == 'true' && 'root' || secrets.destination-username }}
+          DESTINATION_TOKEN: ${{ steps.validate.outputs.test_mode == 'true' && 'mirror-ci-password' || secrets.destination-token }}
+          DESTINATION_SSH_PRIVATE_KEY: ${{ secrets.destination-ssh-private-key }}
+          DESTINATION_SSH_KNOWN_HOSTS: ${{ secrets.destination-ssh-known-hosts }}
+          SOURCE_URL_INPUT: ${{ inputs.source-url }}
+        run: |
+          set -euo pipefail
+
+          destination_url="$DESTINATION_URL"
+          destination_type="$DESTINATION_TYPE"
+          mirror_username="$DESTINATION_USERNAME"
+          destination_token="$DESTINATION_TOKEN"
+
+          source_url="$SOURCE_URL_INPUT"
+          if [[ -z "$source_url" ]]; then
+            source_url="${GITHUB_SERVER_URL%/}/${GITHUB_REPOSITORY}.git"
+          fi
+
+          mirror_dir="$RUNNER_TEMP/repo-mirror.git"
+          rm -rf "$mirror_dir"
+          git init --bare "$mirror_dir"
+
+          github_server_url_with_slash="${GITHUB_SERVER_URL%/}/"
+          git -C "$mirror_dir" remote add source "$source_url"
+
+          git -C "$mirror_dir" \
+            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            fetch --prune source '+refs/*:refs/*'
+
+          git -C "$mirror_dir" remote add destination "$destination_url"
+
+          if [[ "$destination_type" == "ssh" ]]; then
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+
+            if [[ -n "$DESTINATION_SSH_KNOWN_HOSTS" ]]; then
+              printf '%s\n' "$DESTINATION_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+            else
+              ssh_host=""
+              ssh_port="22"
+              if [[ "$destination_url" =~ ^ssh://([^/@]+@)?([^/:]+)(:([0-9]+))?/ ]]; then
+                ssh_host="${BASH_REMATCH[2]}"
+                if [[ -n "${BASH_REMATCH[4]}" ]]; then
+                  ssh_port="${BASH_REMATCH[4]}"
+                fi
+              elif [[ "$destination_url" =~ ^git@([^:]+): ]]; then
+                ssh_host="${BASH_REMATCH[1]}"
+              fi
+
+              if [[ -z "$ssh_host" ]]; then
+                echo "Unable to parse SSH host from destination-url." >&2
+                exit 1
+              fi
+
+              ssh-keyscan -p "$ssh_port" -H "$ssh_host" >> ~/.ssh/known_hosts 2>/dev/null
+            fi
+
+            chmod 600 ~/.ssh/known_hosts
+            eval "$(ssh-agent -s)"
+            printf '%s\n' "$DESTINATION_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+            git -C "$mirror_dir" push --mirror destination
+          else
+            if [[ -z "$mirror_username" ]]; then
+              mirror_username="oauth2"
+            fi
+
+            echo "::add-mask::$destination_token"
+            askpass_script="$RUNNER_TEMP/git-askpass.sh"
+            printf '%s\n' \
+              '#!/usr/bin/env bash' \
+              'case "$1" in' \
+              '  *sername*) echo "$MIRROR_USERNAME" ;;' \
+              '  *assword*) echo "$MIRROR_PASSWORD" ;;' \
+              '  *) echo "" ;;' \
+              'esac' \
+              > "$askpass_script"
+            chmod 700 "$askpass_script"
+
+            GIT_TERMINAL_PROMPT=0 \
+            GIT_ASKPASS="$askpass_script" \
+            MIRROR_USERNAME="$mirror_username" \
+            MIRROR_PASSWORD="$destination_token" \
+            git -C "$mirror_dir" push --mirror destination
+          fi
+
+          if [[ "$destination_type" == "ssh" ]]; then
+            ssh-agent -k >/dev/null
+          fi
+
+      - name: Verify mirrored refs in test mode
+        if: ${{ steps.validate.outputs.test_mode == 'true' }}
+        env:
+          DESTINATION_URL: http://127.0.0.1:8080/root/mirror.git
+          DESTINATION_USERNAME: root
+          DESTINATION_TOKEN: mirror-ci-password
+          SOURCE_URL_INPUT: ${{ inputs.source-url }}
+        run: |
+          set -euo pipefail
+
+          source_url="$SOURCE_URL_INPUT"
+          if [[ -z "$source_url" ]]; then
+            source_url="${GITHUB_SERVER_URL%/}/${GITHUB_REPOSITORY}.git"
+          fi
+
+          mirror_dir="$RUNNER_TEMP/repo-mirror-verify.git"
+          rm -rf "$mirror_dir"
+          git init --bare "$mirror_dir"
+
+          github_server_url_with_slash="${GITHUB_SERVER_URL%/}/"
+          git -C "$mirror_dir" remote add source "$source_url"
+          git -C "$mirror_dir" \
+            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            fetch --prune source '+refs/*:refs/*'
+
+          git -C "$mirror_dir" remote add destination "$DESTINATION_URL"
+
+          source_refs="$RUNNER_TEMP/source-refs.txt"
+          destination_refs="$RUNNER_TEMP/destination-refs.txt"
+
+          git -C "$mirror_dir" for-each-ref --format='%(objectname) %(refname)' refs | sort > "$source_refs"
+
+          echo "::add-mask::$DESTINATION_TOKEN"
+          askpass_script="$RUNNER_TEMP/git-askpass-verify.sh"
+          printf '%s\n' \
+            '#!/usr/bin/env bash' \
+            'case "$1" in' \
+            '  *sername*) echo "$MIRROR_USERNAME" ;;' \
+            '  *assword*) echo "$MIRROR_PASSWORD" ;;' \
+            '  *) echo "" ;;' \
+            'esac' \
+            > "$askpass_script"
+          chmod 700 "$askpass_script"
+
+          GIT_TERMINAL_PROMPT=0 \
+          GIT_ASKPASS="$askpass_script" \
+          MIRROR_USERNAME="$DESTINATION_USERNAME" \
+          MIRROR_PASSWORD="$DESTINATION_TOKEN" \
+          git ls-remote destination | awk '$2 ~ /^refs\// {print $1 " " $2}' | sort > "$destination_refs"
+
+          diff -u "$source_refs" "$destination_refs"
