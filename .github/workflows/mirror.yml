@@ -274,6 +274,6 @@ jobs:
           chmod 600 "$test_key_path"
 
           GIT_SSH_COMMAND="ssh -i $test_key_path -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
-            git ls-remote "$destination_url" | awk '$2 ~ /^refs\// {print $1 " " $2}' | sort > "$destination_refs"
+            git ls-remote "$destination_url" | awk '$2 ~ /^refs\// && $2 !~ /\^\{\}$/ {print $1 " " $2}' | sort > "$destination_refs"
 
           diff -u "$source_refs" "$destination_refs"
