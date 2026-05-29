@@ -39,7 +39,9 @@ jobs:
         image: ${{ (inputs.destination-url == '') && 'rockstorm/git-server:latest' || '' }}
         env:
           GIT_PASSWORD: mirror-ci-password
-          SSH_AUTHORIZED_KEYS_URL: https://raw.githubusercontent.com/EasyDesk/workflows/master/.github/testdata/mirror-test-key.pub
+          SSH_AUTHORIZED_KEYS_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/.github/workflows/mirror.yml
+          MIRROR_TEST_PUBLIC_KEY: >-
+            ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPHQRk+eQPnM/9jBwEH+qDQV2ZiIlVbudvy48OT6Qsh7 lucad@DESKTOP-UAQ49HJ
           REPOSITORIES_HOME_LINK: /srv/git
         ports:
           - 2222:22
@@ -54,7 +56,7 @@ jobs:
 
           if [[ -z "$destination_url" ]]; then
             destination_type="ssh"
-            effective_destination_url="ssh://git@127.0.0.1:2222/mirror.git"
+            effective_destination_url="ssh://git@127.0.0.1:2222/home/git/mirror.git"
             test_mode="true"
           elif [[ "$destination_url" =~ ^https?:// ]]; then
             destination_type="https"
