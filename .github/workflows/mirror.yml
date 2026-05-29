@@ -235,8 +235,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          destination_url="$DESTINATION_URL"
           source_url="$SOURCE_URL_INPUT"
           source_auth_token="$SOURCE_AUTH_TOKEN"
+
+          if [[ -z "$destination_url" ]]; then
+            echo "Destination URL is empty in test verification step." >&2
+            exit 1
+          fi
+
           if [[ -z "$source_url" ]]; then
             source_url="${GITHUB_SERVER_URL%/}/${GITHUB_REPOSITORY}.git"
           fi
@@ -251,8 +258,6 @@ jobs:
           git -C "$mirror_dir" \
             -c "http.${github_server_url_with_slash}.extraheader=${github_basic_auth_header}" \
             fetch --prune source '+refs/*:refs/*'
-
-          git -C "$mirror_dir" remote add destination "$DESTINATION_URL"
 
           source_refs="$RUNNER_TEMP/source-refs.txt"
           destination_refs="$RUNNER_TEMP/destination-refs.txt"
@@ -269,6 +274,6 @@ jobs:
           chmod 600 "$test_key_path"
 
           GIT_SSH_COMMAND="ssh -i $test_key_path -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
-            git ls-remote destination | awk '$2 ~ /^refs\// {print $1 " " $2}' | sort > "$destination_refs"
+            git ls-remote "$destination_url" | awk '$2 ~ /^refs\// {print $1 " " $2}' | sort > "$destination_refs"
 
           diff -u "$source_refs" "$destination_refs"
