@@ -23,9 +23,6 @@ on:
       destination-ssh-private-key:
         description: Private SSH key for SSH mirroring.
         required: false
-      destination-ssh-known-hosts:
-        description: Optional known_hosts content for strict SSH host verification.
-        required: false
 
 defaults:
   run:
@@ -38,16 +35,13 @@ jobs:
     permissions:
       contents: read
     services:
-      gitlab:
-        image: ${{ (inputs.destination-url == '') && 'gitlab/gitlab-ce:latest' || '' }}
+      gitserver:
+        image: ${{ (inputs.destination-url == '') && 'rockstorm/git-server:latest' || '' }}
         env:
-          GITLAB_ROOT_PASSWORD: mirror-ci-password
-          GITLAB_OMNIBUS_CONFIG: |
-            external_url 'http://127.0.0.1:8080'
-            nginx['listen_port'] = 80
-            gitlab_rails['initial_root_password'] = ENV['GITLAB_ROOT_PASSWORD']
+          GIT_PASSWORD: mirror-ci-password
+          REPOSITORIES_HOME_LINK: /srv/git
         ports:
-          - 8080:80
+          - 22:22
     steps:
       - name: Validate inputs
         id: validate
@@ -55,9 +49,11 @@ jobs:
           set -euo pipefail
 
           destination_url='${{ inputs.destination-url }}'
+          effective_destination_url="$destination_url"
 
           if [[ -z "$destination_url" ]]; then
-            destination_type="https"
+            destination_type="ssh"
+            effective_destination_url="ssh://git@127.0.0.1/mirror.git"
             test_mode="true"
           elif [[ "$destination_url" =~ ^https?:// ]]; then
             destination_type="https"
@@ -82,44 +78,63 @@ jobs:
           fi
 
           echo "destination_type=$destination_type" >> "$GITHUB_OUTPUT"
+          echo "destination_url=$effective_destination_url" >> "$GITHUB_OUTPUT"
           echo "test_mode=$test_mode" >> "$GITHUB_OUTPUT"
 
-      - name: Bootstrap GitLab test project
+      - name: Bootstrap test git server
+        id: bootstrap_test_server
         if: ${{ steps.validate.outputs.test_mode == 'true' }}
         run: |
           set -euo pipefail
 
-          destination_username="root"
-          destination_token="mirror-ci-password"
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y sshpass >/dev/null
 
-          for attempt in {1..120}; do
-            if curl --fail --silent --show-error http://127.0.0.1:8080/-/readiness >/dev/null 2>&1; then
+          for attempt in {1..30}; do
+            if ssh-keyscan 127.0.0.1 >/dev/null 2>&1; then
               break
             fi
 
-            if [[ "$attempt" -eq 120 ]]; then
-              echo "Test gitlab server did not become ready in time." >&2
+            if [[ "$attempt" -eq 30 ]]; then
+              echo "Test git server did not become ready in time." >&2
               exit 1
             fi
 
-            sleep 5
+            sleep 1
           done
 
-          curl --fail --silent --show-error \
-            -u "$destination_username:$destination_token" \
-            -H "Content-Type: application/json" \
-            -X POST \
-            -d '{"name":"mirror","visibility":"public"}' \
-            http://127.0.0.1:8080/api/v4/projects >/dev/null
+          sshpass -p 'mirror-ci-password' \
+            ssh \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              git@127.0.0.1 \
+              'git-init --bare /srv/git/mirror.git'
+
+          test_key_path="$RUNNER_TEMP/mirror-test-key"
+          ssh-keygen -t ed25519 -N '' -f "$test_key_path" >/dev/null
+          test_public_key_b64="$(base64 -w 0 "$test_key_path.pub")"
+
+          sshpass -p 'mirror-ci-password' \
+            ssh \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              git@127.0.0.1 \
+              "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo '$test_public_key_b64' | base64 -d >> ~/.ssh/authorized_keys"
+
+          output_delimiter="EOF_$(date +%s%N)"
+          {
+            echo "test_ssh_private_key<<$output_delimiter"
+            cat "$test_key_path"
+            echo "$output_delimiter"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Mirror refs
         env:
-          DESTINATION_URL: ${{ steps.validate.outputs.test_mode == 'true' && 'http://127.0.0.1:8080/root/mirror.git' || inputs.destination-url }}
-          DESTINATION_TYPE: ${{ steps.validate.outputs.test_mode == 'true' && 'https' || steps.validate.outputs.destination_type }}
-          DESTINATION_USERNAME: ${{ steps.validate.outputs.test_mode == 'true' && 'root' || secrets.destination-username }}
-          DESTINATION_TOKEN: ${{ steps.validate.outputs.test_mode == 'true' && 'mirror-ci-password' || secrets.destination-token }}
-          DESTINATION_SSH_PRIVATE_KEY: ${{ secrets.destination-ssh-private-key }}
-          DESTINATION_SSH_KNOWN_HOSTS: ${{ secrets.destination-ssh-known-hosts }}
+          DESTINATION_URL: ${{ steps.validate.outputs.destination_url }}
+          DESTINATION_TYPE: ${{ steps.validate.outputs.destination_type }}
+          DESTINATION_USERNAME: ${{ secrets.destination-username }}
+          DESTINATION_TOKEN: ${{ secrets.destination-token }}
+          DESTINATION_SSH_PRIVATE_KEY: ${{ steps.bootstrap_test_server.outputs.test_ssh_private_key || secrets.destination-ssh-private-key }}
           SOURCE_URL_INPUT: ${{ inputs.source-url }}
         run: |
           set -euo pipefail
@@ -128,6 +143,7 @@ jobs:
           destination_type="$DESTINATION_TYPE"
           mirror_username="$DESTINATION_USERNAME"
           destination_token="$DESTINATION_TOKEN"
+          destination_ssh_private_key="$DESTINATION_SSH_PRIVATE_KEY"
 
           source_url="$SOURCE_URL_INPUT"
           if [[ -z "$source_url" ]]; then
@@ -151,32 +167,35 @@ jobs:
             mkdir -p ~/.ssh
             chmod 700 ~/.ssh
 
-            if [[ -n "$DESTINATION_SSH_KNOWN_HOSTS" ]]; then
-              printf '%s\n' "$DESTINATION_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-            else
-              ssh_host=""
-              ssh_port="22"
-              if [[ "$destination_url" =~ ^ssh://([^/@]+@)?([^/:]+)(:([0-9]+))?/ ]]; then
-                ssh_host="${BASH_REMATCH[2]}"
-                if [[ -n "${BASH_REMATCH[4]}" ]]; then
-                  ssh_port="${BASH_REMATCH[4]}"
-                fi
-              elif [[ "$destination_url" =~ ^git@([^:]+): ]]; then
-                ssh_host="${BASH_REMATCH[1]}"
+            ssh_host=""
+            ssh_port="22"
+            if [[ "$destination_url" =~ ^ssh://([^/@]+@)?([^/:]+)(:([0-9]+))?/ ]]; then
+              ssh_host="${BASH_REMATCH[2]}"
+              if [[ -n "${BASH_REMATCH[4]}" ]]; then
+                ssh_port="${BASH_REMATCH[4]}"
               fi
-
-              if [[ -z "$ssh_host" ]]; then
-                echo "Unable to parse SSH host from destination-url." >&2
-                exit 1
-              fi
-
-              ssh-keyscan -p "$ssh_port" -H "$ssh_host" >> ~/.ssh/known_hosts 2>/dev/null
+            elif [[ "$destination_url" =~ ^git@([^:]+): ]]; then
+              ssh_host="${BASH_REMATCH[1]}"
             fi
 
+            if [[ -z "$ssh_host" ]]; then
+              echo "Unable to parse SSH host from destination-url." >&2
+              exit 1
+            fi
+
+            ssh-keyscan -p "$ssh_port" -H "$ssh_host" > ~/.ssh/known_hosts 2>/dev/null
+
             chmod 600 ~/.ssh/known_hosts
+
+            if [[ -z "$destination_ssh_private_key" ]]; then
+              echo "destination-ssh-private-key secret is required for SSH mirroring." >&2
+              exit 1
+            fi
+
             eval "$(ssh-agent -s)"
-            printf '%s\n' "$DESTINATION_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+            printf '%s\n' "$destination_ssh_private_key" | tr -d '\r' | ssh-add -
             git -C "$mirror_dir" push --mirror destination
+            ssh-agent -k >/dev/null
           else
             if [[ -z "$mirror_username" ]]; then
               mirror_username="oauth2"
@@ -201,16 +220,11 @@ jobs:
             git -C "$mirror_dir" push --mirror destination
           fi
 
-          if [[ "$destination_type" == "ssh" ]]; then
-            ssh-agent -k >/dev/null
-          fi
-
       - name: Verify mirrored refs in test mode
         if: ${{ steps.validate.outputs.test_mode == 'true' }}
         env:
-          DESTINATION_URL: http://127.0.0.1:8080/root/mirror.git
-          DESTINATION_USERNAME: root
-          DESTINATION_TOKEN: mirror-ci-password
+          DESTINATION_URL: ${{ steps.validate.outputs.destination_url }}
+          TEST_SSH_PRIVATE_KEY: ${{ steps.bootstrap_test_server.outputs.test_ssh_private_key }}
           SOURCE_URL_INPUT: ${{ inputs.source-url }}
         run: |
           set -euo pipefail
@@ -237,22 +251,16 @@ jobs:
 
           git -C "$mirror_dir" for-each-ref --format='%(objectname) %(refname)' refs | sort > "$source_refs"
 
-          echo "::add-mask::$DESTINATION_TOKEN"
-          askpass_script="$RUNNER_TEMP/git-askpass-verify.sh"
-          printf '%s\n' \
-            '#!/usr/bin/env bash' \
-            'case "$1" in' \
-            '  *sername*) echo "$MIRROR_USERNAME" ;;' \
-            '  *assword*) echo "$MIRROR_PASSWORD" ;;' \
-            '  *) echo "" ;;' \
-            'esac' \
-            > "$askpass_script"
-          chmod 700 "$askpass_script"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 600 ~/.ssh/known_hosts
 
-          GIT_TERMINAL_PROMPT=0 \
-          GIT_ASKPASS="$askpass_script" \
-          MIRROR_USERNAME="$DESTINATION_USERNAME" \
-          MIRROR_PASSWORD="$DESTINATION_TOKEN" \
-          git ls-remote destination | awk '$2 ~ /^refs\// {print $1 " " $2}' | sort > "$destination_refs"
+          test_key_path="$RUNNER_TEMP/mirror-test-verify-key"
+          printf '%s\n' "$TEST_SSH_PRIVATE_KEY" > "$test_key_path"
+          chmod 600 "$test_key_path"
+
+          GIT_SSH_COMMAND="ssh -i $test_key_path -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
+            git ls-remote destination | awk '$2 ~ /^refs\// {print $1 " " $2}' | sort > "$destination_refs"
 
           diff -u "$source_refs" "$destination_refs"
