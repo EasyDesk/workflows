@@ -109,7 +109,7 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               git@127.0.0.1 \
-              'git-init --bare /srv/git/mirror.git'
+              'git-init --bare mirror.git'
 
           test_key_path="$RUNNER_TEMP/mirror-test-key"
           ssh-keygen -t ed25519 -N '' -f "$test_key_path" >/dev/null
