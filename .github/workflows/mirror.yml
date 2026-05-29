@@ -157,10 +157,11 @@ jobs:
           git init --bare "$mirror_dir"
 
           github_server_url_with_slash="${GITHUB_SERVER_URL%/}/"
+          github_basic_auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$source_auth_token" | base64 | tr -d '\n')"
           git -C "$mirror_dir" remote add source "$source_url"
 
           git -C "$mirror_dir" \
-            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${source_auth_token}" \
+            -c "http.${github_server_url_with_slash}.extraheader=${github_basic_auth_header}" \
             fetch --prune source '+refs/*:refs/*'
 
           git -C "$mirror_dir" remote add destination "$destination_url"
@@ -243,9 +244,10 @@ jobs:
           git init --bare "$mirror_dir"
 
           github_server_url_with_slash="${GITHUB_SERVER_URL%/}/"
+          github_basic_auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$source_auth_token" | base64 | tr -d '\n')"
           git -C "$mirror_dir" remote add source "$source_url"
           git -C "$mirror_dir" \
-            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${source_auth_token}" \
+            -c "http.${github_server_url_with_slash}.extraheader=${github_basic_auth_header}" \
             fetch --prune source '+refs/*:refs/*'
 
           git -C "$mirror_dir" remote add destination "$DESTINATION_URL"
