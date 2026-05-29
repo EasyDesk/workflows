@@ -41,7 +41,7 @@ jobs:
           GIT_PASSWORD: mirror-ci-password
           REPOSITORIES_HOME_LINK: /srv/git
         ports:
-          - 22:22
+          - 2222:22
     steps:
       - name: Validate inputs
         id: validate
@@ -53,7 +53,7 @@ jobs:
 
           if [[ -z "$destination_url" ]]; then
             destination_type="ssh"
-            effective_destination_url="ssh://git@127.0.0.1/mirror.git"
+            effective_destination_url="ssh://git@127.0.0.1:2222/mirror.git"
             test_mode="true"
           elif [[ "$destination_url" =~ ^https?:// ]]; then
             destination_type="https"
@@ -91,7 +91,7 @@ jobs:
           sudo apt-get install -y sshpass >/dev/null
 
           for attempt in {1..30}; do
-            if ssh-keyscan 127.0.0.1 >/dev/null 2>&1; then
+            if ssh-keyscan -p 2222 127.0.0.1 >/dev/null 2>&1; then
               break
             fi
 
@@ -105,6 +105,7 @@ jobs:
 
           sshpass -p 'mirror-ci-password' \
             ssh \
+              -p 2222 \
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               git@127.0.0.1 \
@@ -116,6 +117,7 @@ jobs:
 
           sshpass -p 'mirror-ci-password' \
             ssh \
+              -p 2222 \
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               git@127.0.0.1 \
@@ -253,7 +255,7 @@ jobs:
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H 127.0.0.1 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p 2222 -H 127.0.0.1 >> ~/.ssh/known_hosts 2>/dev/null
           chmod 600 ~/.ssh/known_hosts
 
           test_key_path="$RUNNER_TEMP/mirror-test-verify-key"
