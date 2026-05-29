@@ -136,6 +136,7 @@ jobs:
           DESTINATION_TOKEN: ${{ secrets.destination-token }}
           DESTINATION_SSH_PRIVATE_KEY: ${{ steps.bootstrap_test_server.outputs.test_ssh_private_key || secrets.destination-ssh-private-key }}
           SOURCE_URL_INPUT: ${{ inputs.source-url }}
+          SOURCE_AUTH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -144,6 +145,7 @@ jobs:
           mirror_username="$DESTINATION_USERNAME"
           destination_token="$DESTINATION_TOKEN"
           destination_ssh_private_key="$DESTINATION_SSH_PRIVATE_KEY"
+          source_auth_token="$SOURCE_AUTH_TOKEN"
 
           source_url="$SOURCE_URL_INPUT"
           if [[ -z "$source_url" ]]; then
@@ -158,7 +160,7 @@ jobs:
           git -C "$mirror_dir" remote add source "$source_url"
 
           git -C "$mirror_dir" \
-            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${source_auth_token}" \
             fetch --prune source '+refs/*:refs/*'
 
           git -C "$mirror_dir" remote add destination "$destination_url"
@@ -226,10 +228,12 @@ jobs:
           DESTINATION_URL: ${{ steps.validate.outputs.destination_url }}
           TEST_SSH_PRIVATE_KEY: ${{ steps.bootstrap_test_server.outputs.test_ssh_private_key }}
           SOURCE_URL_INPUT: ${{ inputs.source-url }}
+          SOURCE_AUTH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           source_url="$SOURCE_URL_INPUT"
+          source_auth_token="$SOURCE_AUTH_TOKEN"
           if [[ -z "$source_url" ]]; then
             source_url="${GITHUB_SERVER_URL%/}/${GITHUB_REPOSITORY}.git"
           fi
@@ -241,7 +245,7 @@ jobs:
           github_server_url_with_slash="${GITHUB_SERVER_URL%/}/"
           git -C "$mirror_dir" remote add source "$source_url"
           git -C "$mirror_dir" \
-            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${GITHUB_TOKEN}" \
+            -c "http.${github_server_url_with_slash}.extraheader=AUTHORIZATION: bearer ${source_auth_token}" \
             fetch --prune source '+refs/*:refs/*'
 
           git -C "$mirror_dir" remote add destination "$DESTINATION_URL"
