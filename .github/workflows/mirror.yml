@@ -164,7 +164,9 @@ jobs:
 
           git -C "$mirror_dir" \
             -c "http.${github_server_url_with_slash}.extraheader=${github_basic_auth_header}" \
-            fetch --prune source '+refs/*:refs/*'
+            fetch --prune source \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
 
           git -C "$mirror_dir" remote add destination "$destination_url"
 
@@ -199,7 +201,9 @@ jobs:
 
             eval "$(ssh-agent -s)"
             printf '%s\n' "$destination_ssh_private_key" | tr -d '\r' | ssh-add -
-            git -C "$mirror_dir" push --mirror destination
+            git -C "$mirror_dir" push --prune destination \
+              '+refs/heads/*:refs/heads/*' \
+              '+refs/tags/*:refs/tags/*'
             ssh-agent -k >/dev/null
           else
             if [[ -z "$mirror_username" ]]; then
@@ -222,7 +226,9 @@ jobs:
             GIT_ASKPASS="$askpass_script" \
             MIRROR_USERNAME="$mirror_username" \
             MIRROR_PASSWORD="$destination_token" \
-            git -C "$mirror_dir" push --mirror destination
+            git -C "$mirror_dir" push --prune destination \
+              '+refs/heads/*:refs/heads/*' \
+              '+refs/tags/*:refs/tags/*'
           fi
 
       - name: Verify mirrored refs in test mode
@@ -257,12 +263,14 @@ jobs:
           git -C "$mirror_dir" remote add source "$source_url"
           git -C "$mirror_dir" \
             -c "http.${github_server_url_with_slash}.extraheader=${github_basic_auth_header}" \
-            fetch --prune source '+refs/*:refs/*'
+            fetch --prune source \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
 
           source_refs="$RUNNER_TEMP/source-refs.txt"
           destination_refs="$RUNNER_TEMP/destination-refs.txt"
 
-          git -C "$mirror_dir" for-each-ref --format='%(objectname) %(refname)' refs | sort > "$source_refs"
+          git -C "$mirror_dir" for-each-ref --format='%(objectname) %(refname)' refs/heads refs/tags | sort > "$source_refs"
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -274,6 +282,6 @@ jobs:
           chmod 600 "$test_key_path"
 
           GIT_SSH_COMMAND="ssh -i $test_key_path -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" \
-            git ls-remote "$destination_url" | awk '$2 ~ /^refs\// && $2 !~ /\^\{\}$/ {print $1 " " $2}' | sort > "$destination_refs"
+            git ls-remote "$destination_url" | awk '$2 ~ /^refs\/(heads|tags)\// && $2 !~ /\^\{\}$/ {print $1 " " $2}' | sort > "$destination_refs"
 
           diff -u "$source_refs" "$destination_refs"
