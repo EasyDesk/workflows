@@ -32,6 +32,9 @@ jobs:
   mirror:
     name: Mirror Git Refs
     runs-on: ubuntu-latest
+    concurrency:
+      group: mirror-${{ github.workflow }}-${{ inputs.destination-url || 'test' }}
+      cancel-in-progress: false
     permissions:
       contents: read
     services:
