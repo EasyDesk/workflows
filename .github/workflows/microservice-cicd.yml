@@ -104,7 +104,7 @@ jobs:
       build-args: ${{ inputs.docker-build-args }}
     secrets:
       registry-url: ${{ secrets.registry-url }}
-      docker-username: ${{ secrets.docker-username || github.repository_owner }}
+      docker-username: ${{ secrets.docker-username }}
       docker-password: ${{ secrets.docker-password }}
 
   openapi:
