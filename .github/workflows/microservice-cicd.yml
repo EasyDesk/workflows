@@ -46,6 +46,10 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
+      docker-version: 
+        type: string
+        required: false
+        default: 'latest'
       openapi-command:
         type: string
         required: false
@@ -102,6 +106,7 @@ jobs:
       dockerfile: ${{ inputs.dockerfile }}
       stage: ${{ inputs.docker-stage }}
       build-args: ${{ inputs.docker-build-args }}
+      docker-version: ${{ inputs.docker-version }}
     secrets:
       registry-url: ${{ secrets.registry-url }}
       docker-username: ${{ secrets.docker-username }}
