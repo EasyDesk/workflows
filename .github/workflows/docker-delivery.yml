@@ -29,6 +29,10 @@ on:
         type: string
         required: false
         default: ''
+      docker-version:
+        type: string
+        required: false
+        default: latest
     secrets:
       docker-username:
         required: false
@@ -70,7 +74,7 @@ jobs:
       - name: Setup Docker
         uses: docker/setup-docker-action@v5
         with:
-          version: 29.6.0
+          version: ${{ inputs.docker-version }}
       - name: Checkout
         id: semver
         uses: EasyDesk/action-semver-checkout@v1
