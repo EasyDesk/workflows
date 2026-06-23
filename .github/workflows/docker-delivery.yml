@@ -56,7 +56,7 @@ jobs:
       group: docker-push-${{ github.repository }}-${{ inputs.image-name }}-${{ inputs.tag-suffix }}
     services:
       registry:
-        image: ${{ case(inputs.docker-version, '', 'registry:latest') }}
+        image: ${{ case(inputs.docker-version != 'latest', '', 'registry:latest') }}
         ports:
           - 5000:5000
     defaults:
@@ -67,7 +67,7 @@ jobs:
       contents: write
     env:
       DEFAULT_REGISTRY: localhost:5000
-      SELECTED_REGISTRY: ${{ case(secrets.registry-url, secrets.registry-url, inputs.docker-version, '', 'localhost:5000') }}
+      SELECTED_REGISTRY: ${{ case(secrets.registry-url != '', secrets.registry-url, inputs.docker-version != 'latest', '', 'localhost:5000') }}
       SELECTED_DOCKER_USERNAME: ${{ secrets.docker-username || github.repository_owner }}
       DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
