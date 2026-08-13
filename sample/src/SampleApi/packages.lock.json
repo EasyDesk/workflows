@@ -13,9 +13,9 @@
       },
       "Microsoft.Extensions.ApiDescription.Server": {
         "type": "Direct",
-        "requested": "[10.0.8, )",
-        "resolved": "10.0.8",
-        "contentHash": "fikrKwWqzn/72glL9bTNnuberYPrKldDdgyR1cnW9gbfUXN4oG4eg+uXkTUXuIPcEjwCeOTTTja0VpsHf50tWA=="
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "yijfZoSrAa46NIezh7YRvv0eL4zPuCJtkoMwmYn0EXPoNVU0Bl85ijva7RbX72Usrcfd7AYqQxv9VzYqSvObdw=="
       },
       "Microsoft.OpenApi": {
         "type": "Transitive",
